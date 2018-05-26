@@ -1,55 +1,7 @@
 #include"lib.h"
 #include<ctime>
 #include<thread>
-void SetColor(int color = -1) // 直接先給預設
-{
-	switch (color)
-	{
-	case 0:    // White on Black
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			FOREGROUND_INTENSITY | FOREGROUND_RED |
-			FOREGROUND_GREEN | FOREGROUND_BLUE);
-		break;
-	case 1:    // Red on Black
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			FOREGROUND_INTENSITY | FOREGROUND_RED);
-		break;
-	case 2:    // Green on Black
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			FOREGROUND_INTENSITY | FOREGROUND_GREEN);
-		break;
-	case 3:    // Yellow on Black
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			FOREGROUND_INTENSITY | FOREGROUND_RED |
-			FOREGROUND_GREEN);
-		break;
-	case 4:    // Blue on Black
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			FOREGROUND_INTENSITY | FOREGROUND_BLUE);
-		break;
-	case 5:    // Magenta on Black
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			FOREGROUND_INTENSITY | FOREGROUND_RED |
-			FOREGROUND_BLUE);
-		break;
-	case 6:    // Cyan on Black
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			FOREGROUND_INTENSITY | FOREGROUND_GREEN |
-			FOREGROUND_BLUE);
-		break;
-	case 7:    // Black on Gray
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-			BACKGROUND_INTENSITY | BACKGROUND_INTENSITY);
-		break;
-	
-	default:    // White on Black
-		
-			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
-				FOREGROUND_INTENSITY | FOREGROUND_RED |
-				FOREGROUND_GREEN | FOREGROUND_BLUE);
-		break;
-	}
-}
+
 GUI G;
 int buffer[200*sizeof(int)];
 enum type {
@@ -111,7 +63,6 @@ bool Connect()
 
 int main()
 {
-	SetColor();
 	sf::Thread t(&GUI::EnableGUI, &G);
 	
 	t.launch();
@@ -131,6 +82,7 @@ int main()
 	while (true)
 	{
 		cout << "[Recv]Waiting for data..." << endl;
+		G.GotStuff = false;
 		int getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
 		cout << "\tData [ " << buffer << " ] with size = " << getsize / sizeof(int) << endl;
 		switch (buffer[0])
@@ -166,9 +118,7 @@ int main()
 			cout << "\t[Recv]Unknown command!!" << endl;
 			break;
 		}
-		SetColor(2);
-		cout << "[Game]Now it's "<<TurnStr[G.Turn]<<"\'s Turn:" << endl;
-		SetColor();
+		G.GotStuff = true;
 		memset(buffer, 0, 800);
 	}
 	t.wait();

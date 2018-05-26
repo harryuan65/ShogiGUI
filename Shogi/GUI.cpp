@@ -37,6 +37,7 @@ sf::Sprite Entity::getSprite() {
 	return sprite;
 }
 
+
 wchar_t *convertCharArrayToLPCWSTR(const char* charArray)
 {
 	wchar_t* wString = new wchar_t[4096];
@@ -190,12 +191,10 @@ void GUI::InitEnvironment()
 	t2 = 0;
 }
 GUI::GUI() {
-	Scene = Ingame;
+	GotStuff = false;
 	src = 0;
 	dst = 0;
 	isHold = false;
-	isEnable = false;
-	RefreshScreen = false;
 	if (!font.loadFromFile("棒棒體W5.TTC"))
 		std::cout << "Can't load font" << std::endl;
 
@@ -207,21 +206,21 @@ GUI::GUI() {
 bool GUI::SetBoard(std::string init)
 {
 	roundseed = rand() % 666;
-	
-	if (CreateDirectory(convertCharArrayToLPCWSTR(to_string(roundseed).c_str()), NULL) ||
+	fdrpath = string(__DATE__);
+	fdrpath.append(("_"+to_string(roundseed)).c_str());
+	if (CreateDirectory(convertCharArrayToLPCWSTR(fdrpath.c_str()), NULL) ||
 		ERROR_ALREADY_EXISTS == GetLastError())
 	{
-		cout << "[SetBoard]Screenshot Folder\""<<roundseed<<"\" created" << endl;
+		cout << "[SetBoard]Screenshot Folder\""<<fdrpath<<"\" created" << endl;
 	}
 	else
 	{
-		cout<<"Failed to create directory"<< (LPWSTR)(to_string(roundseed).c_str()) <<"."<<endl;
+		cout<<"[SetBoard]Failed to create directory"<< fdrpath <<"."<<endl;
 	}
 	if (win >= 0)
-	{
 		for (int i = 0; i < BOARD_SIZE; i++)
 			boardStatus[i] = 0;
-	}
+	
 	int appearance[] = { 2,2,2,2,2,2 };
 	stringstream ss(init);
 	string token = "";
@@ -290,9 +289,9 @@ bool GUI::SetBoard(std::string init)
 	src = 0;
 	dst = 0;
 	pro = false;
+	isHold = false;
 	movecount = 0;
 	SlotDST.visible = false;
-	isHold = false;
 	movefinished = false;
 	if (win >= 0)
 		if (Mode == PlayervsAI)//P1 = 0 v AI1 = 2
@@ -303,6 +302,7 @@ bool GUI::SetBoard(std::string init)
 			Turn = !Turn;
 		else if (Mode == AIvsAI || Mode == AIvsOtherAI)//CPU1 v CPU2
 			Turn = (Turn == AI1 ? AI2 : AI1);
+	movefinished = true;//一開始拍一張
 	cout << "[SetBoard]Board initialized " << endl;
 }
 void GUI::SetCustomBoard() {
@@ -447,7 +447,7 @@ void GUI::DoMove(int s, int d, bool p) {
 	else if (Mode == AIvsAI || Mode == AIvsOtherAI)//CPU1 v CPU2
 		Turn = (Turn == AI1 ? AI2:AI1);
 
-	SlotDST.setPos(Slot[d].getSprite().getPosition());
+	SlotDST.setPos(dst,Slot[d].getSprite().getPosition());
 	SlotDST.visible = true;
 	src = 0;
 	dst = 0;
@@ -481,7 +481,7 @@ void GUI::SetMovelist(int buf[], int getsize)
 		movelist[i] = (Move)buf[i];
 		readablemovelist[i] = toreadablemove(movelist[i]);//*************************debug
 		Entity *Chess = FindChess(from_sq(movelist[i]));
-		cout << "\t\tMovelist["<<i<<"] "<<((*Chess).id>16?"b":"w")<< chessname[Name2Index[(*Chess).id]] <<"("<<from_sq(movelist[i])<<") To "<<to_sq(movelist[i])<<" "<<(is_pro(movelist[i]) ?"true":"false") << endl;//DEBUG
+		//cout << "\t\tMovelist["<<i<<"] "<<((*Chess).id>16?"b":"w")<< chessname[Name2Index[(*Chess).id]] <<"("<<from_sq(movelist[i])<<") To "<<to_sq(movelist[i])<<" "<<(is_pro(movelist[i]) ?"true":"false") << endl;//DEBUG
 	}
 	cout << "\t[GUI]Movelist updated with size = " << movelistSize << endl;
 }
@@ -522,7 +522,7 @@ void GUI::StorePV(int buf[], int getsize)//一直接收PV 就先存在NewPV之中 等到下次
 			NewPV[i] = (Move)buf[k];
 			readablePVlist[i] = toreadablemove(NewPV[i]);
 			i++;
-			cout << "\t\tNewPV =  " <<to_string(s)<<" "<< to_string(d)<<" "<< to_string(p) <<" Stored" << endl;
+			//cout << "\t\tNewPV =  " <<to_string(s)<<" "<< to_string(d)<<" "<< to_string(p) <<" Stored" << endl;
 		}
 	}
 	NewpvSize = i;
@@ -745,6 +745,7 @@ void GUI::ResetMove()
 }
 void GUI::ModeString()
 {
+
 	if (Mode >= 0)
 		Turn_text.setString(TurnStr[Turn] + "\'s Turn");
 	else if (EDIT_MODE && !hlon)
@@ -762,6 +763,7 @@ string GUI::toreadablemove(Move a)
 {
 	return to_string(from_sq(a)) + " " + to_string(to_sq(a)) + " "+to_string(is_pro(a));
 }
+
 void GUI::EnableGUI()
 {
 	sf::RenderWindow window(sf::VideoMode(780,780), "Minishogi");
@@ -769,147 +771,141 @@ void GUI::EnableGUI()
 	image.loadFromFile("images/prorook.png");
 	window.setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
 	float unit = 2.0f;
-	isEnable = true;
-
+	sf::Event event;
 	while (window.isOpen())
 	{
-		ModeString();
-		sf::Event event;
-		if (window.waitEvent(event))
-		{
-			sf::Event::EventType t = event.type;
-			sf::Event::KeyEvent k = event.key;
-			if (t == sf::Event::Closed)
-				window.close();
-			sf::Vector2i MousePos = sf::Mouse::getPosition(window);
+		ModeString();	
+		if (GotStuff||window.pollEvent(event))
+		{	
+			if(!GotStuff){
 
-			//按下功能按鈕
-			if (t == sf::Event::MouseButtonPressed)
-			{
-				int color;
-				if (win>=0)
-				{
-					color = win;
-					cout << "[GUI]win :" << (color ? "BLACK" : "WHITE") << endl;
+				sf::Event::EventType t = event.type;
+				sf::Event::KeyEvent k = event.key;
+				if (t == sf::Event::Closed)
+					window.close();
+				sf::Vector2i MousePos = sf::Mouse::getPosition(window);
 
-					if ((EBwin.visible && EBwin.isContaining(MousePos)) || (EWwin.visible && EWwin.isContaining(MousePos)))
-					{
-						SetBoard();
-						win = NOONEWIN;
-
-						cout << "[GUI]Game Reset" << endl;
-					}
-				}
-				else if (Mode !=PlayervsPlayer && EShowPV.isContaining(MousePos))
-					SwitchPV();
-				else if (EGiveUp.isContaining(MousePos))
-				{
-					cout <<"[GUI]投降"<< endl;
-					int send[1];
-					send[0] = MOVE_NULL;
-					fm_gm.SendMsg(send,sizeof(int),false);
-
-				}
-			}
-
-			if (EDIT_MODE)
-			{
-				if (t == sf::Event::KeyPressed)
-				{
-					if (k.code == sf::Keyboard::P)
-					{
-						Piece[movingpiece].setFace(Rfchess, Piece[movingpiece].id ^ 16);
-					}
-					else if (k.code >= 75 && k.code <= 77)
-					{
-						movingpiece = k.code - 65;
-						cout << "movingpiece = " << movingpiece << endl;
-					}
-					else if (k.code >= 26 && k.code <= 35)
-					{
-						movingpiece = k.code - 26;
-						cout << "movingpiece = " << movingpiece << endl;
-					}
-					else if (k.code == sf::Keyboard::Z)
-					{
-						ShowAllPos(true);
-					}
-					else if (k.code == sf::Keyboard::X)
-					{
-						ShowAllPos(false);
-					}
-					else if (k.code == sf::Keyboard::A)
-					{
-						Slot[Highlight].visible = true;
-						hlon = true;
-					}
-					else if (k.code == sf::Keyboard::S)
-					{
-						Slot[Highlight].visible = false;
-						hlon = false;
-					}
-					else if (k.code == sf::Keyboard::C)
-					{
-						if (Highlight > 0)Highlight--;
-					}
-					else if (k.code == sf::Keyboard::V)
-					{
-						if (Highlight < 34)Highlight++;
-					}
-					else if (k.code == sf::Keyboard::B)
-					{
-						unit--;
-					}
-					else if (k.code == sf::Keyboard::N)
-					{
-						unit++;
-					}
-					else
-					{
-						sf::Vector2f ScurrentPos = Slot[Highlight].getSprite().getPosition();
-						sf::Vector2f PcurrentPos = Piece[movingpiece].getSprite().getPosition();
-						if (k.code == sf::Keyboard::Up)
-						{
-							if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x, ScurrentPos.y - unit));
-							else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x, PcurrentPos.y - unit));
-						}
-						if (k.code == sf::Keyboard::Down)
-						{
-							if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x, ScurrentPos.y + unit));
-							else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x, PcurrentPos.y + unit));
-						}
-						if (k.code == sf::Keyboard::Left)
-						{
-							if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x - unit, ScurrentPos.y));
-							else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x - unit, PcurrentPos.y));
-						}
-						if (k.code == sf::Keyboard::Right)
-						{
-							if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x + unit, ScurrentPos.y));
-							else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x + unit, PcurrentPos.y));
-						}
-					}
-
-				}
-			}
-			else if (DEBUG_MODE || Mode >= 0 && (Turn == Player1 || Turn == Player2) && win == NOONEWIN)
-			{
-				MousePos = sf::Mouse::getPosition(window);
-				// 按下滑鼠
+				//按下功能按鈕
 				if (t == sf::Event::MouseButtonPressed)
 				{
-					//右鍵重新選棋
-					if (k.code == sf::Mouse::Right)
-						ResetMove();
-					//按下左鍵
-					else if (k.code == sf::Mouse::Left)
+					int color;
+					if (win >= 0)
 					{
-						switch (Scene) {
-						case Main:
-							if (EButton1.isContaining(MousePos))
-								Scene = Ingame;
-							break;
-						case Ingame:
+						color = win;
+						cout << "[GUI]win :" << (color ? "BLACK" : "WHITE") << endl;
+
+						if ((EBwin.visible && EBwin.isContaining(MousePos)) || (EWwin.visible && EWwin.isContaining(MousePos)))
+						{
+							SetBoard();
+							win = NOONEWIN;
+
+							cout << "[GUI]Game Reset" << endl;
+						}
+					}
+					else if (Mode != PlayervsPlayer && EShowPV.isContaining(MousePos))
+						SwitchPV();
+					else if (EGiveUp.isContaining(MousePos))
+					{
+						cout << "[GUI]投降" << endl;
+						int send[1];
+						send[0] = MOVE_NULL;
+						fm_gm.SendMsg(send, sizeof(int), false);
+
+					}
+				}
+
+				if (EDIT_MODE)
+				{
+					if (t == sf::Event::KeyPressed)
+					{
+						if (k.code == sf::Keyboard::P)
+						{
+							Piece[movingpiece].setFace(Rfchess, Piece[movingpiece].id ^ 16);
+						}
+						else if (k.code >= 75 && k.code <= 77)
+						{
+							movingpiece = k.code - 65;
+							cout << "movingpiece = " << movingpiece << endl;
+						}
+						else if (k.code >= 26 && k.code <= 35)
+						{
+							movingpiece = k.code - 26;
+							cout << "movingpiece = " << movingpiece << endl;
+						}
+						else if (k.code == sf::Keyboard::Z)
+						{
+							ShowAllPos(true);
+						}
+						else if (k.code == sf::Keyboard::X)
+						{
+							ShowAllPos(false);
+						}
+						else if (k.code == sf::Keyboard::A)
+						{
+							Slot[Highlight].visible = true;
+							hlon = true;
+						}
+						else if (k.code == sf::Keyboard::S)
+						{
+							Slot[Highlight].visible = false;
+							hlon = false;
+						}
+						else if (k.code == sf::Keyboard::C)
+						{
+							if (Highlight > 0)Highlight--;
+						}
+						else if (k.code == sf::Keyboard::V)
+						{
+							if (Highlight < 34)Highlight++;
+						}
+						else if (k.code == sf::Keyboard::B)
+						{
+							unit--;
+						}
+						else if (k.code == sf::Keyboard::N)
+						{
+							unit++;
+						}
+						else
+						{
+							sf::Vector2f ScurrentPos = Slot[Highlight].getSprite().getPosition();
+							sf::Vector2f PcurrentPos = Piece[movingpiece].getSprite().getPosition();
+							if (k.code == sf::Keyboard::Up)
+							{
+								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x, ScurrentPos.y - unit));
+								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x, PcurrentPos.y - unit));
+							}
+							if (k.code == sf::Keyboard::Down)
+							{
+								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x, ScurrentPos.y + unit));
+								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x, PcurrentPos.y + unit));
+							}
+							if (k.code == sf::Keyboard::Left)
+							{
+								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x - unit, ScurrentPos.y));
+								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x - unit, PcurrentPos.y));
+							}
+							if (k.code == sf::Keyboard::Right)
+							{
+								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x + unit, ScurrentPos.y));
+								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x + unit, PcurrentPos.y));
+							}
+						}
+
+					}
+				}
+				else if (DEBUG_MODE || Mode >= 0 && (Turn == Player1 || Turn == Player2) && win == NOONEWIN)
+				{
+					MousePos = sf::Mouse::getPosition(window);
+					// 按下滑鼠
+					if (t == sf::Event::MouseButtonPressed)
+					{
+						//右鍵重新選棋
+						if (k.code == sf::Mouse::Right)
+							ResetMove();
+						//按下左鍵
+						else if (k.code == sf::Mouse::Left)
+						{
 							//詢問可升變者
 							if (isAskPro)
 							{
@@ -997,112 +993,101 @@ void GUI::EnableGUI()
 									}
 								}
 							}
-							break;
-						}
-					}//End 按下左鍵
-				}//End 按下滑鼠
-				 // 棋盤內滑鼠懸浮
-				else if (!isPVon&&win == NOONEWIN)
-				{
-					for (int i = 0; i < 35; i++)
+
+						}//End 按下左鍵
+					}//End 按下滑鼠
+					 // 棋盤內滑鼠懸浮
+					else if (!isPVon&&win == NOONEWIN)
 					{
-						Entity *Chess = FindChess(i);
-						if (!isHold&&Chess != NULL && (((*Chess).id & 16) > 0) == Turn && Slot[i].isContaining(MousePos))
+						for (int i = 0; i < 35; i++)
 						{
-							SlotHover[i].visible = true;
+							Entity *Chess = FindChess(i);
+							if (!isHold&&Chess != NULL && (((*Chess).id & 16) > 0) == Turn && Slot[i].isContaining(MousePos))
+							{
+								SlotHover[i].visible = true;
+							}
+							else
+								SlotHover[i].visible = false;
 						}
-						else
-							SlotHover[i].visible = false;
-					}
 
-				}// End 棋盤內滑鼠懸浮
+					}// End 棋盤內滑鼠懸浮
 
+				}
+
+				//棋盤外懸浮
+				if (Mode != PlayervsPlayer)EShowPV.setTexture(EShowPV.isContaining(MousePos) ? "Button_ShowPVH50" : "Button_ShowPV");
+				if (Mode != AIvsAI)EGiveUp.setTexture(EGiveUp.isContaining(MousePos) ? "Button_GiveUpH50" : "Button_GiveUp");
+				if (Mode != AIvsAI)EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
 			}
-
-			//棋盤外懸浮
-			if(Mode !=PlayervsPlayer)EShowPV.setTexture(EShowPV.isContaining(MousePos) ? "Button_ShowPVH50" : "Button_ShowPV");
-			if(Mode !=AIvsAI)EGiveUp.setTexture(EGiveUp.isContaining(MousePos) ? "Button_GiveUpH50" : "Button_GiveUp");
-			if(Mode !=AIvsAI)EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
-
 		}
 
-		window.clear();
-		window.draw(EBackground.getSprite());
-		switch (Scene)
+
+		window.draw(EBoard.getSprite());
+		window.draw(Turn_text);
+
+		//Green Slots and Grey SlotHover
+		for (int i = 0; i < 35; i++)
+			if (Slot[i].visible)
+				window.draw(Slot[i].getSprite());
+			else if (SlotHover[i].visible)
+				window.draw(SlotHover[i].getSprite());
+		//handleft # text
+		for (int i = 0; i < 10; i++)
+			if (handleft[i].getString() != "0")window.draw(handleft[i]);
+		//DST	
+		if (SlotDST.visible)window.draw(SlotDST.getSprite());
+
+		//Pieces
+		if (isPVon)
 		{
-		case Main:
-			window.draw(ETitle.getSprite());
-			window.draw(EButton1.getSprite());
-			window.draw(EButton2.getSprite());
-			break;
-		case Ingame:
-			window.draw(EBoard.getSprite());
-			window.draw(Turn_text);
+			t2 = clock();
+			double tp = (double)((t2 - t1) / (double)(CLOCKS_PER_SEC));
+			if (tp >= PVSPEED)
+				PV_DoMove();
+			for (int i = 0; i < 12; i++)if (PVPiece[i].id > 0)
+				window.draw(PVPiece[i].getSprite());
+		}
+		else
+			for (int i = 0; i < 12; i++)if (Piece[i].id > 0)
+				window.draw(Piece[i].getSprite());
 
-			//Green Slots and Grey SlotHover
-			for(int i =0;i<35;i++)
-					if (Slot[i].visible) 
-						window.draw(Slot[i].getSprite());
-					else if(SlotHover[i].visible)
-						window.draw(SlotHover[i].getSprite());
-			//handleft # text
-				for (int i = 0; i < 10; i++)
-					if(handleft[i].getString() != "0")window.draw(handleft[i]);
-			//DST	
-			if(SlotDST.visible)window.draw(SlotDST.getSprite());
+		//Check reference pieces' faces
+			//for (int i = 0; i < 20; i++)if (Rfchess[i].visible)window.draw(Rfchess[i].getSprite());
+		//Check PV reference pieces' faces
+			//for (int i = 0; i < 20; i++)if (PVRfchess[i].visible)window.draw(PVRfchess[i].getSprite());
 
-			//Pieces
-				if (isPVon)
-				{
-					t2 = clock();
-					double tp = (double)((t2 - t1) / (double)(CLOCKS_PER_SEC));
-					if (tp>= PVSPEED)
-						PV_DoMove();
-					for (int i = 0; i < 12; i++)if (PVPiece[i].id > 0)
-						window.draw(PVPiece[i].getSprite());
-				}
-				else
-					for (int i = 0; i < 12; i++)if (Piece[i].id>0)
-						window.draw(Piece[i].getSprite());
-			
-			//Check reference pieces' faces
-				//for (int i = 0; i < 20; i++)if (Rfchess[i].visible)window.draw(Rfchess[i].getSprite());
-			//Check PV reference pieces' faces
-				//for (int i = 0; i < 20; i++)if (PVRfchess[i].visible)window.draw(PVRfchess[i].getSprite());
-			
-			//Pro window
-				if (isAskPro)
-				{
-					window.draw(EAskPro.getSprite());
-					window.draw(EYes.getSprite());
-					window.draw(ENo.getSprite());
-				}
-			
-				if (DEBUG_MODE|| Mode >= 0&& Mode != PlayervsPlayer)
-				{
-					window.draw(EShowPV.getSprite());
-				}
-				if (DEBUG_MODE||Mode>=0)
-				{
-					window.draw(EGiveUp.getSprite());
-					window.draw(EUndoMove.getSprite());
-				}
-			//Win 
-				if (win>=0)
-					window.draw(win == WHITEWIN?EWwin.getSprite():EBwin.getSprite());
-			
-
-			break;
-
+		//Pro window
+		if (isAskPro)
+		{
+			window.draw(EAskPro.getSprite());
+			window.draw(EYes.getSprite());
+			window.draw(ENo.getSprite());
 		}
 
+		if (Mode >= 0)
+		{
+			if(Mode != PlayervsPlayer)
+				window.draw(EShowPV.getSprite());
+			window.draw(EGiveUp.getSprite());
+			window.draw(EUndoMove.getSprite());
+		}
+		//Win 
+		if (win >= 0)
+			window.draw(win == WHITEWIN ? EWwin.getSprite() : EBwin.getSprite());
 		window.display();
-		if (movefinished) {
+		if (movefinished)
+		{
 			scrs = window.capture();
-			scrs.saveToFile(to_string(roundseed) + "/" + to_string(movecount) + ".png");
-			cout << "Screenshot saved" << endl;
-			movefinished = false;
+			if (scrs.saveToFile(fdrpath + "/" + to_string(movecount) + ".png")) {
+				cout << "\t\t\t[GUi]Screenshot saved" << endl;
+				movefinished = false;
+			}
+			else {
+				cout << "[GUI]Failed to take screenshot" << endl;
+			}
 		}
+		
+
 	}
 	
 }

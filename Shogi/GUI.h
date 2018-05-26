@@ -34,8 +34,6 @@ public:
 	Entity *DstChess;
 	bool pro;
 };
-
-
 class GUI
 {
 private:
@@ -69,14 +67,12 @@ private:
 	Entity EGiveUp;
 	Entity EUndoMove;
 public :
-	bool isEnable;
+	bool GotStuff;
 	bool isHold;
 	bool isAskPro;
 	bool NoWayToGo;
-	bool RefreshScreen;
 	short Turn;
 	int boardStatus[35];//25~29, 30~34 棋盤上跟手牌的狀況(存棋子)
-	int Scene;
 	int Mode;
 	int Highlight;
 	int src;
@@ -106,7 +102,7 @@ public :
 	void SetCustomBoard();
 	void ModeString();
 	void EnableGUI();
-
+	
 	//PV
 	Entity *FindPVChess(int square);
 	Entity PVDisplayChess[20];//小顆的
@@ -132,6 +128,7 @@ public :
 	void ResetPV();
 	time_t t1,t2;
 	bool movefinished;
+	string fdrpath;
 	sf::Image scrs;
 	//Debug
 	string toreadablemove(Move a);
