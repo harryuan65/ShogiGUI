@@ -37,7 +37,12 @@ sf::Sprite Entity::getSprite() {
 	return sprite;
 }
 
-
+wchar_t *convertCharArrayToLPCWSTR(const char* charArray)
+{
+	wchar_t* wString = new wchar_t[4096];
+	MultiByteToWideChar(CP_ACP, 0, charArray, -1, wString, 4096);
+	return wString;
+}
 void GUI::LoadTexture()
 {
 	EBackground.setTexture("Background");
@@ -61,7 +66,8 @@ void GUI::InitEnvironment()
 	EButton1.setPos(288.0f, 211.0f);
 	EButton2.setPos(288.0f, 324.0f);
 	EBoard.setPos(0.0f, 0.0f);
-	
+
+	srand(time(NULL));
 	//Board blocks 0~25
 	for (int i = 0, k = 0; i < 5; i++)
 	{
@@ -200,6 +206,17 @@ GUI::GUI() {
 }
 bool GUI::SetBoard(std::string init)
 {
+	roundseed = rand() % 666;
+	
+	if (CreateDirectory(convertCharArrayToLPCWSTR(to_string(roundseed).c_str()), NULL) ||
+		ERROR_ALREADY_EXISTS == GetLastError())
+	{
+		cout << "[SetBoard]Screenshot Folder\""<<roundseed<<"\" created" << endl;
+	}
+	else
+	{
+		cout<<"Failed to create directory"<< (LPWSTR)(to_string(roundseed).c_str()) <<"."<<endl;
+	}
 	if (win >= 0)
 	{
 		for (int i = 0; i < BOARD_SIZE; i++)
@@ -273,8 +290,10 @@ bool GUI::SetBoard(std::string init)
 	src = 0;
 	dst = 0;
 	pro = false;
+	movecount = 0;
 	SlotDST.visible = false;
 	isHold = false;
+	movefinished = false;
 	if (win >= 0)
 		if (Mode == PlayervsAI)//P1 = 0 v AI1 = 2
 			Turn ^= 2;
@@ -434,6 +453,8 @@ void GUI::DoMove(int s, int d, bool p) {
 	dst = 0;
 	pro = false;
 	HightLightOff();
+	movecount++;
+	movefinished = true;
 }
 bool GUI::isWin()
 {
@@ -1004,6 +1025,7 @@ void GUI::EnableGUI()
 			if(Mode !=AIvsAI)EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
 
 		}
+
 		window.clear();
 		window.draw(EBackground.getSprite());
 		switch (Scene)
@@ -1075,8 +1097,14 @@ void GUI::EnableGUI()
 		}
 
 		window.display();
+		if (movefinished) {
+			scrs = window.capture();
+			scrs.saveToFile(to_string(roundseed) + "/" + to_string(movecount) + ".png");
+			cout << "Screenshot saved" << endl;
+			movefinished = false;
+		}
 	}
-
+	
 }
 
 

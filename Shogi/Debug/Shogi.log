@@ -1,10 +1,13 @@
 ﻿  GUI.cpp
 c:\users\harry\documents\github\介面更新版\shogi\sfml\include\sfml\window\windowhandle.hpp : warning C4819: 檔案含有無法在目前字碼頁 (950) 中表示的字元。請以 Unicode 格式儲存檔案以防止資料遺失
 c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(34): warning C4244: '引數': 將 'int' 轉換為 'float'，由於類型不同，可能導致資料遺失
-c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(142): warning C4996: 'sf::Text::setColor': 宣告為已被取代
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(70): warning C4244: '引數': 將 'time_t' 轉換為 'unsigned int'，由於類型不同，可能導致資料遺失
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(148): warning C4996: 'sf::Text::setColor': 宣告為已被取代
   c:\users\harry\documents\github\介面更新版\shogi\sfml\include\sfml\graphics\text.hpp(177): note: 請參閱 'sf::Text::setColor' 的宣告
-c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(152): warning C4996: 'sf::Text::setColor': 宣告為已被取代
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(158): warning C4996: 'sf::Text::setColor': 宣告為已被取代
   c:\users\harry\documents\github\介面更新版\shogi\sfml\include\sfml\graphics\text.hpp(177): note: 請參閱 'sf::Text::setColor' 的宣告
-c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(909): warning C4244: '引數': 將 'int' 轉換為 'float'，由於類型不同，可能導致資料遺失
-c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(288): warning C4715: 'GUI::SetBoard': 不是所有控制路徑都傳回值
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(930): warning C4244: '引數': 將 'int' 轉換為 'float'，由於類型不同，可能導致資料遺失
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(1101): warning C4996: 'sf::RenderWindow::capture': 宣告為已被取代
+  c:\users\harry\documents\github\介面更新版\shogi\sfml\include\sfml\graphics\renderwindow.hpp(140): note: 請參閱 'sf::RenderWindow::capture' 的宣告
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(307): warning C4715: 'GUI::SetBoard': 不是所有控制路徑都傳回值
   Shogi.vcxproj -> C:\Users\Harry\Documents\GitHub\介面更新版\Debug\Shogi.exe

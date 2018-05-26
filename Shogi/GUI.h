@@ -83,6 +83,8 @@ public :
 	int dst;
 	bool pro;
 	int win;
+	int movecount;
+	int roundseed;
 	FileMapping fm_gm;
 	FileMapping fm_mg;
 
@@ -129,7 +131,8 @@ public :
 	void UpdatePVnBoard();
 	void ResetPV();
 	time_t t1,t2;
-
+	bool movefinished;
+	sf::Image scrs;
 	//Debug
 	string toreadablemove(Move a);
 	string readablemovelist[200];
