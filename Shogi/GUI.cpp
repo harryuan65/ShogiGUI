@@ -389,11 +389,11 @@ void GUI::DoMove(int src, int dst, bool pro) {
 	if (Mode == PlayervsAI)//P1 = 0 v AI1 = 2
 		Turn ^= 2;
 	else if (Mode == AIvsPlayer)//AI1 = 2 , P2 =1
-		Turn = (Turn == AI1 ? AI1 : Player2);
+		Turn = (Turn == AI1 ? Player2 :AI1 );
 	else if (Mode == PlayervsPlayer)//P1 = 0 , P2 = 1
 		Turn = !Turn;
 	else if (Mode == AIvsAI || Mode == AIvsOtherAI)//CPU1 v CPU2
-		Turn = (Turn == AI1 ? AI1:AI2);
+		Turn = (Turn == AI1 ? AI2:AI1);
 
 	src = 0;
 	dst = 0;
