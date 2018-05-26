@@ -5,6 +5,6 @@ c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(142): warning C499
   c:\users\harry\documents\github\介面更新版\shogi\sfml\include\sfml\graphics\text.hpp(177): note: 請參閱 'sf::Text::setColor' 的宣告
 c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(152): warning C4996: 'sf::Text::setColor': 宣告為已被取代
   c:\users\harry\documents\github\介面更新版\shogi\sfml\include\sfml\graphics\text.hpp(177): note: 請參閱 'sf::Text::setColor' 的宣告
-c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(880): warning C4244: '引數': 將 'int' 轉換為 'float'，由於類型不同，可能導致資料遺失
-c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(268): warning C4715: 'GUI::SetBoard': 不是所有控制路徑都傳回值
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(909): warning C4244: '引數': 將 'int' 轉換為 'float'，由於類型不同，可能導致資料遺失
+c:\users\harry\documents\github\介面更新版\shogi\gui.cpp(288): warning C4715: 'GUI::SetBoard': 不是所有控制路徑都傳回值
   Shogi.vcxproj -> C:\Users\Harry\Documents\GitHub\介面更新版\Debug\Shogi.exe

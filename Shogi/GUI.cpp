@@ -200,6 +200,11 @@ GUI::GUI() {
 }
 bool GUI::SetBoard(std::string init)
 {
+	if (win >= 0)
+	{
+		for (int i = 0; i < BOARD_SIZE; i++)
+			boardStatus[i] = 0;
+	}
 	int appearance[] = { 2,2,2,2,2,2 };
 	stringstream ss(init);
 	string token = "";
@@ -263,7 +268,22 @@ bool GUI::SetBoard(std::string init)
 		square++;
 	}
 
-
+	for (int i = 0; i < 10; i++)//以PVBoard的25~34手牌數量
+		handleft[i].setString(to_string(boardStatus[i + 25]));
+	src = 0;
+	dst = 0;
+	pro = false;
+	SlotDST.visible = false;
+	isHold = false;
+	if (win >= 0)
+		if (Mode == PlayervsAI)//P1 = 0 v AI1 = 2
+			Turn ^= 2;
+		else if (Mode == AIvsPlayer)//AI1 = 2 , P2 =1
+			Turn = (Turn == AI1 ? Player2 : AI1);
+		else if (Mode == PlayervsPlayer)//P1 = 0 , P2 = 1
+			Turn = !Turn;
+		else if (Mode == AIvsAI || Mode == AIvsOtherAI)//CPU1 v CPU2
+			Turn = (Turn == AI1 ? AI2 : AI1);
 	cout << "[SetBoard]Board initialized " << endl;
 }
 void GUI::SetCustomBoard() {
@@ -579,13 +599,13 @@ void GUI::PV_DoMove()
 			}
 			else if (PVboardStatus[d] > 0)//Eat
 			{
-				int sendpos = (*dstChess).id > 16 ? (*dstChess).id + 13 : (*dstChess).id + 24;
 				(*srcChess).setPos(d, boardPos[d]);
 				if ((*dstChess).alreadyPro)
 				{
 					(*dstChess).alreadyPro = false;
 					(*dstChess).setFace(PVRfchess, (*dstChess).id - 8);
 				}
+				int sendpos = (*dstChess).id > 16 ? (*dstChess).id + 13 : (*dstChess).id + 24;
 
 				(*dstChess).setFace(PVRfchess, (*dstChess).id ^ 16);
 				(*dstChess).setPos(sendpos, boardPos[sendpos]);
@@ -743,23 +763,32 @@ void GUI::EnableGUI()
 			sf::Vector2i MousePos = sf::Mouse::getPosition(window);
 
 			//按下功能按鈕
-			if (t == sf::Event::MouseButtonPressed) 
+			if (t == sf::Event::MouseButtonPressed)
 			{
 				int color;
-				if (isWin())
+				if (win>=0)
 				{
 					color = win;
-					cout <<"[WIN]"<< (color?"BLACK":"WHITE") << endl;
+					cout << "[GUI]win :" << (color ? "BLACK" : "WHITE") << endl;
 
 					if ((EBwin.visible && EBwin.isContaining(MousePos)) || (EWwin.visible && EWwin.isContaining(MousePos)))
 					{
-						win = NOONEWIN;
 						SetBoard();
-						cout << "[Clicked on win]Game Reset" << endl;
+						win = NOONEWIN;
+
+						cout << "[GUI]Game Reset" << endl;
 					}
 				}
-				else if (Mode == AIvsAI && EShowPV.isContaining(MousePos))
+				else if (Mode !=PlayervsPlayer && EShowPV.isContaining(MousePos))
 					SwitchPV();
+				else if (EGiveUp.isContaining(MousePos))
+				{
+					cout <<"[GUI]投降"<< endl;
+					int send[1];
+					send[0] = MOVE_NULL;
+					fm_gm.SendMsg(send,sizeof(int),false);
+
+				}
 			}
 
 			if (EDIT_MODE)
@@ -842,11 +871,11 @@ void GUI::EnableGUI()
 
 				}
 			}
-			else if (DEBUG_MODE || Mode >= 0 && (Turn == Player1 || Turn == Player2) &&win == NOONEWIN)
+			else if (DEBUG_MODE || Mode >= 0 && (Turn == Player1 || Turn == Player2) && win == NOONEWIN)
 			{
 				MousePos = sf::Mouse::getPosition(window);
 				// 按下滑鼠
-				if (t == sf::Event::MouseButtonPressed) 
+				if (t == sf::Event::MouseButtonPressed)
 				{
 					//右鍵重新選棋
 					if (k.code == sf::Mouse::Right)
@@ -873,7 +902,7 @@ void GUI::EnableGUI()
 								GUIDoMove();
 							}
 							//點按棋子
-							else if (!isPVon) 
+							else if (!isPVon)
 							{
 								for (int i = 0; i < 35; i++)
 								{
@@ -882,7 +911,7 @@ void GUI::EnableGUI()
 										Entity *Chess = FindChess(i);
 										if (boardStatus[i] && Chess != NULL) {//有按到棋子
 											if (isHold && (DEBUG_MODE || Slot[i].visible)) {//已經選過棋且該位置可以按
-												
+
 												dst = i;
 												if (src == dst)continue;
 												isHold = false;
@@ -908,7 +937,7 @@ void GUI::EnableGUI()
 											else if ((((*Chess).id & 16) > 0) == Turn)//未選棋，此時先選到自己的棋
 											{
 												src = i;
-												cout << "\t[Clicked]On " << ((*Chess).id >16 ? "b" : "w") << chessname[Name2Index[(*Chess).id]] << (!DEBUG_MODE&&NoWayToGo ? " ***但它沒地方走!!!!!!!!!" : "");
+												cout << "\t[Clicked]On " << ((*Chess).id > 16 ? "b" : "w") << chessname[Name2Index[(*Chess).id]] << (!DEBUG_MODE&&NoWayToGo ? " ***但它沒地方走!!!!!!!!!" : "");
 												HightLight();
 												if (!NoWayToGo || DEBUG_MODE)
 													isHold = true;
@@ -936,7 +965,7 @@ void GUI::EnableGUI()
 													{
 														isAskPro = true;
 													}
-													
+
 												}
 												else //不能升變的 即直接Domove 不須詢問
 												{
@@ -951,7 +980,8 @@ void GUI::EnableGUI()
 						}
 					}//End 按下左鍵
 				}//End 按下滑鼠
-				else if (!isPVon&&win == NOONEWIN)// 滑鼠懸浮
+				 // 棋盤內滑鼠懸浮
+				else if (!isPVon&&win == NOONEWIN)
 				{
 					for (int i = 0; i < 35; i++)
 					{
@@ -963,11 +993,16 @@ void GUI::EnableGUI()
 						else
 							SlotHover[i].visible = false;
 					}
-					EGiveUp.setTexture(EGiveUp.isContaining(MousePos)? "Button_GiveUpH50" :"Button_GiveUp");
-					EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
-				}// End 滑鼠懸浮
+
+				}// End 棋盤內滑鼠懸浮
 
 			}
+
+			//棋盤外懸浮
+			if(Mode !=PlayervsPlayer)EShowPV.setTexture(EShowPV.isContaining(MousePos) ? "Button_ShowPVH50" : "Button_ShowPV");
+			if(Mode !=AIvsAI)EGiveUp.setTexture(EGiveUp.isContaining(MousePos) ? "Button_GiveUpH50" : "Button_GiveUp");
+			if(Mode !=AIvsAI)EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
+
 		}
 		window.clear();
 		window.draw(EBackground.getSprite());
@@ -1021,17 +1056,17 @@ void GUI::EnableGUI()
 					window.draw(ENo.getSprite());
 				}
 			
-				if (DEBUG_MODE||Mode == AIvsAI)
+				if (DEBUG_MODE|| Mode >= 0&& Mode != PlayervsPlayer)
 				{
 					window.draw(EShowPV.getSprite());
 				}
-				if (DEBUG_MODE||Mode>0)
+				if (DEBUG_MODE||Mode>=0)
 				{
 					window.draw(EGiveUp.getSprite());
 					window.draw(EUndoMove.getSprite());
 				}
 			//Win 
-				if (isWin())
+				if (win>=0)
 					window.draw(win == WHITEWIN?EWwin.getSprite():EBwin.getSprite());
 			
 
