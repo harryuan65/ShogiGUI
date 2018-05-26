@@ -6,11 +6,15 @@ GUI.cpp(140): warning C4996: 'sf::Text::setColor': 宣告為已被取代
   C:\Users\Harry\Documents\GitHub\介面更新版\Shogi\sfml\include\SFML/Graphics/Text.hpp(177): note: 請參閱 'sf::Text::setColor' 的宣告
 GUI.cpp(149): warning C4996: 'sf::Text::setColor': 宣告為已被取代
   C:\Users\Harry\Documents\GitHub\介面更新版\Shogi\sfml\include\SFML/Graphics/Text.hpp(177): note: 請參閱 'sf::Text::setColor' 的宣告
-GUI.cpp(858): warning C4244: '引數': 將 'int' 轉換為 'float'，由於類型不同，可能導致資料遺失
+GUI.cpp(860): warning C4244: '引數': 將 'int' 轉換為 'float'，由於類型不同，可能導致資料遺失
+  Main.cpp
+C:\Users\Harry\Documents\GitHub\介面更新版\Shogi\sfml\include\SFML/Window/WindowHandle.hpp : warning C4819: 檔案含有無法在目前字碼頁 (950) 中表示的字元。請以 Unicode 格式儲存檔案以防止資料遺失
+c:\users\harry\documents\github\介面更新版\shogi\Types.h(178): warning C4800: 'uint32_t': 強制將 bool 的值定為 'true' 或 'false' (效能警告)
+Main.cpp(69): warning C4244: '引數': 將 'time_t' 轉換為 'unsigned int'，由於類型不同，可能導致資料遺失
   正在產生程式碼
-  1 of 349 functions ( 0.3%) were compiled, the rest were copied from previous compilation.
+  3 of 349 functions ( 0.9%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    27 functions had inline decision re-evaluated but remain unchanged
+    11 functions had inline decision re-evaluated but remain unchanged
   已完成程式碼產生
   Shogi.vcxproj -> C:\Users\Harry\Documents\GitHub\介面更新版\Release\Shogi.exe
   Shogi.vcxproj -> C:\Users\Harry\Documents\GitHub\介面更新版\Release\Shogi.pdb (Full PDB)

@@ -1,4 +1,5 @@
 #include"lib.h"
+
 void Entity::setTexture(std::string filename)
 {
 	std::string text = "images/" + filename + ".png";
@@ -52,6 +53,7 @@ void GUI::LoadTexture()
 	EShowPV.setTexture("Button_ShowPV");
 	EGiveUp.setTexture("Button_GiveUp");
 	EUndoMove.setTexture("Button_UndoMove");
+	SlotDST.setTexture("rect_b_bl50");
 }
 void GUI::InitEnvironment()
 {
@@ -145,6 +147,7 @@ void GUI::InitEnvironment()
 		}
 
 	}
+	SlotDST.visible = false;
 	Turn_text.setFont(font);
 	Turn_text.setColor(sf::Color::Black);
 	Turn_text.setCharacterSize(20);
@@ -326,29 +329,36 @@ void GUI::UndoMove() {
 	Turn = !Turn;
 
 }
-void GUI::DoMove(int src, int dst, bool pro) {
-	Entity *SrcChess = FindChess(src);
-	Entity *DstChess = FindChess(dst);
+void GUI::GUIDoMove() {
+	int send[2];
+	send[0] = 2;//在testFileMapping = Ack
+	send[1] = make_move((Square)src, (Square)dst, pro);
+	fm_gm.SendMsg(send, sizeof(send), false);
+	DoMove(src, dst, pro);
+}
+void GUI::DoMove(int s, int d, bool p) {
+	Entity *SrcChess = FindChess(s);
+	Entity *DstChess = FindChess(d);
 	if (SrcChess != NULL)
 	{
-		if (src > 24 && boardStatus[src] > 0)//Hand
+		if (s > 24 && boardStatus[s] > 0)//Hand
 		{
-			(*SrcChess).setPos(dst, boardPos[dst]);
-			boardStatus[src]--;
-			boardStatus[dst] = (*SrcChess).id;
-			handleft[src - 25].setString(std::to_string(boardStatus[src]));;
-			cout << "\t[DoMove]打入:" << chessname[Name2Index[(*SrcChess).id]] << ":(" << src << ")至(" << dst << ")" << endl;
+			(*SrcChess).setPos(d, boardPos[d]);
+			boardStatus[s]--;
+			boardStatus[d] = (*SrcChess).id;
+			handleft[s - 25].setString(std::to_string(boardStatus[s]));;
+			cout << "\t[DoMove]打入:" << chessname[Name2Index[(*SrcChess).id]] << ":(" << s << ")至(" << d << ")" << endl;
 		}
 		else
 		{
-			if (boardStatus[dst] == 0)//Move
+			if (boardStatus[d] == 0)//Move
 			{
-				(*SrcChess).setPos(dst, boardPos[dst]);
-				boardStatus[dst] = boardStatus[src];
-				boardStatus[src] = 0;
-				cout << "\t[DoMove]移動:" << chessname[Name2Index[(*SrcChess).id]] << ":(" << src << ")至(" << dst << ")" << endl;
+				(*SrcChess).setPos(d, boardPos[d]);
+				boardStatus[d] = boardStatus[s];
+				boardStatus[s] = 0;
+				cout << "\t[DoMove]移動:" << chessname[Name2Index[(*SrcChess).id]] << ":(" << s << ")至(" << d << ")" << endl;
 			}
-			else if (boardStatus[dst] > 0)//Eat
+			else if (boardStatus[d] > 0)//Eat
 			{
 				if ((*DstChess).id == 6)
 					win = 1;
@@ -356,7 +366,7 @@ void GUI::DoMove(int src, int dst, bool pro) {
 					win = 0;
 				else
 				{
-					(*SrcChess).setPos(dst, boardPos[dst]);
+					(*SrcChess).setPos(d, boardPos[d]);
 					if ((*DstChess).alreadyPro)
 					{
 						(*DstChess).alreadyPro = false;
@@ -365,25 +375,28 @@ void GUI::DoMove(int src, int dst, bool pro) {
 					int sendpos = (*DstChess).id > 16 ? (*DstChess).id + 13 : (*DstChess).id + 24;//本行只適用於黑白未升變的棋子
 					(*DstChess).setFace(Rfchess, (*DstChess).id ^ 16);
 					(*DstChess).setPos(sendpos, boardPos[sendpos]);
-					boardStatus[dst] = boardStatus[src];
-					boardStatus[src] = 0;
+					boardStatus[d] = boardStatus[s];
+					boardStatus[s] = 0;
 					boardStatus[sendpos]++;
 					handleft[sendpos - 25].setString(std::to_string(boardStatus[sendpos]));
-					cout << "\t[DoMove]" << chessname[Name2Index[(*SrcChess).id]] << "從(" << src << "(" << ":吃" << chessname[Name2Index[(*DstChess).id]] << "至(" << sendpos << ")" << endl;
+					cout << "\t[DoMove]" << chessname[Name2Index[(*SrcChess).id]] << "從(" << s << "(" << ":吃" << chessname[Name2Index[(*DstChess).id]] << "至(" << sendpos << ")" << endl;
 				}
 
 			}
 		}
 	}
-	if (pro && (*SrcChess).proable)
+	if (p && (*SrcChess).proable)
 	{
+		cout << "\t[DoMove]" << chessname[Name2Index[(*SrcChess).id]] << "升變成";
 		(*SrcChess).setFace(Rfchess, (*SrcChess).id + 8);
 		(*SrcChess).alreadyPro = true;
+		cout << chessname[Name2Index[(*SrcChess).id]]<<", id = "<< (*SrcChess).id << endl;
+
 	}
 
-	Lact.src = src;
-	Lact.dst = dst;
-	Lact.pro = pro;
+	Lact.src = s;
+	Lact.dst = d;
+	Lact.pro = p;
 	Lact.SrcChess = SrcChess;
 	Lact.DstChess = DstChess;
 	if (Mode == PlayervsAI)//P1 = 0 v AI1 = 2
@@ -395,6 +408,8 @@ void GUI::DoMove(int src, int dst, bool pro) {
 	else if (Mode == AIvsAI || Mode == AIvsOtherAI)//CPU1 v CPU2
 		Turn = (Turn == AI1 ? AI2:AI1);
 
+	SlotDST.setPos(Slot[d].getSprite().getPosition());
+	SlotDST.visible = true;
 	src = 0;
 	dst = 0;
 	pro = false;
@@ -404,11 +419,13 @@ bool GUI::isWin()
 {
 	if (win == 0)
 	{
+		cout << "[isWIN]Game Over by winner: WHITE";
 		EWwin.visible = true;
 		return true;
 	}
 	else if (win == 1)
 	{
+		cout << "[isWIN]Game Over by winner: BLACK";
 		EBwin.visible = true;
 		return true;
 	}
@@ -422,6 +439,8 @@ void GUI::SetMovelist(int buf[], int getsize)
 	{
 		movelist[i] = (Move)buf[i];
 		readablemovelist[i] = toreadablemove(movelist[i]);//*************************debug
+		Entity *Chess = FindChess(from_sq(movelist[i]));
+		cout << "\t\tMovelist["<<i<<"] "<<((*Chess).id>16?"b":"w")<< chessname[Name2Index[(*Chess).id]] <<"("<<from_sq(movelist[i])<<") To "<<to_sq(movelist[i])<<" "<<(is_pro(movelist[i]) ?"true":"false") << endl;//DEBUG
 	}
 	cout << "\t[GUI]Movelist updated with size = " << movelistSize << endl;
 }
@@ -462,10 +481,9 @@ void GUI::StorePV(int buf[], int getsize)//一直接收PV 就先存在NewPV之中 等到下次
 			NewPV[i] = (Move)buf[k];
 			readablePVlist[i] = toreadablemove(NewPV[i]);
 			i++;
-			cout << "NewPV =  " <<to_string(s)<<" "<< to_string(d)<<" "<< to_string(p) <<" Stored" << endl;
+			cout << "\t\tNewPV =  " <<to_string(s)<<" "<< to_string(d)<<" "<< to_string(p) <<" Stored" << endl;
 		}
 	}
-	cout << endl;
 	NewpvSize = i;
 	cout << "\t[GUI]PV updated with size = " << NewpvSize << endl;
 }
@@ -527,7 +545,7 @@ void GUI::AIDoMove()
 	int s = from_sq(NewPV[0]);
 	int d = to_sq(NewPV[0]);
 	bool p = is_pro(NewPV[0]);
-	cout << "[AIDoMove]移動:" << chessname[Name2Index[(*FindChess(s)).id]] << ":(" << s << ")至(" << d << ") " <<(p?"升變":"")<< endl;
+	cout << "\t[AIDoMove]移動:" << chessname[Name2Index[(*FindChess(s)).id]] << ":(" << s << ")至(" << d << ") " <<(p?"升變":"")<< endl;
 	DoMove(s, d, p);
 }
 void GUI::PV_DoMove()
@@ -644,6 +662,7 @@ void GUI::HightLightOff()
 }
 int GUI::HightLight()//依照當下的src去找
 {
+	SlotDST.visible = false;
 	int count = 0;
 	cout << "\t[HightLight]" << chessname[Name2Index[(*FindChess(src)).id]] << "在" << src << "可以走:";
 	NoWayToGo = true;
@@ -675,11 +694,13 @@ int GUI::HightLight()//依照當下的src去找
 }
 void GUI::ResetMove()
 {
+	SlotDST.visible = true;
 	src = 0;
 	dst = 0;
 	pro = 0;
 	isHold = 0;
 	HightLightOff();
+	cout << "[ResetMove]src = " << src << "dst = " << dst << "pro = " << (pro ? "true" : "false") << " HightlightOFF," << "isHold = " << (isHold?"true": "false") << endl;
 }
 void GUI::ModeString()
 {
@@ -713,7 +734,7 @@ void GUI::EnableGUI()
 	{
 		ModeString();
 		sf::Event event;
-		if (window.waitEvent(event)||RefreshScreen)
+		if (window.waitEvent(event))
 		{
 			sf::Event::EventType t = event.type;
 			sf::Event::KeyEvent k = event.key;
@@ -728,7 +749,7 @@ void GUI::EnableGUI()
 				if (isWin())
 				{
 					color = win;
-					cout <<"[WIIIIIIIIIIIIIIIIN]"<< color << endl;
+					cout <<"[WIN]"<< (color?"BLACK":"WHITE") << endl;
 
 					if ((EBwin.visible && EBwin.isContaining(MousePos)) || (EWwin.visible && EWwin.isContaining(MousePos)))
 					{
@@ -824,10 +845,13 @@ void GUI::EnableGUI()
 			else if (DEBUG_MODE || Mode >= 0 && (Turn == Player1 || Turn == Player2) &&win == NOONEWIN)
 			{
 				MousePos = sf::Mouse::getPosition(window);
-				if (t == sf::Event::MouseButtonPressed) // 1 Mouse Click
+				// 按下滑鼠
+				if (t == sf::Event::MouseButtonPressed) 
 				{
+					//右鍵重新選棋
 					if (k.code == sf::Mouse::Right)
 						ResetMove();
+					//按下左鍵
 					else if (k.code == sf::Mouse::Left)
 					{
 						switch (Scene) {
@@ -836,7 +860,8 @@ void GUI::EnableGUI()
 								Scene = Ingame;
 							break;
 						case Ingame:
-							if (isAskPro) //詢問可升變者
+							//詢問可升變者
+							if (isAskPro)
 							{
 								if (EYes.isContaining(MousePos))
 									pro = true;
@@ -845,13 +870,10 @@ void GUI::EnableGUI()
 
 								isAskPro = false;
 								isHold = false;
-								int send[2];
-								send[0] = 2;
-								send[1] = make_move((Square)src, (Square)dst, pro);
-								fm_gm.SendMsg(send, sizeof(send), false);
-								DoMove(src, dst, pro);
+								GUIDoMove();
 							}
-							else if (!isPVon) //點按棋子
+							//點按棋子
+							else if (!isPVon) 
 							{
 								for (int i = 0; i < 35; i++)
 								{
@@ -860,27 +882,37 @@ void GUI::EnableGUI()
 										Entity *Chess = FindChess(i);
 										if (boardStatus[i] && Chess != NULL) {//有按到棋子
 											if (isHold && (DEBUG_MODE || Slot[i].visible)) {//已經選過棋且該位置可以按
+												
 												dst = i;
 												if (src == dst)continue;
 												isHold = false;
 												if (Slot[i].proable)
-													isAskPro = true;
-												else {//不能升變的 即直接Domove 不須詢問
-													int send[2];
-													send[0] = 2;//在testFileMapping = Ack
-													send[1] = make_move((Square)src, (Square)dst, pro);
-													fm_gm.SendMsg(send, sizeof(send), false);
-													DoMove(src, dst, pro);
+												{
+													int srcchessid = (*FindChess(src)).id;
+													bool isPawn = srcchessid == 1 || srcchessid == 17;
+													if (isPawn)//有人跟我說步兵要直接升級呢，聽起來真棒
+													{
+														pro = true;
+														//cout << "步直接升變 src =" << src << "dst = " << dst << "pro =" << pro << endl;
+														GUIDoMove();
+													}
+													else
+													{
+														isAskPro = true;
+													}
+												}
+												else {//不能升變的 即直接Domove 我是覺得不用詢問了啦
+													GUIDoMove();
 												}
 											}
-											else if ((((*Chess).id & 16) > 0) == Turn)//未選棋，此時先選到自己的棋0 1 2 3
+											else if ((((*Chess).id & 16) > 0) == Turn)//未選棋，此時先選到自己的棋
 											{
 												src = i;
+												cout << "\t[Clicked]On " << ((*Chess).id >16 ? "b" : "w") << chessname[Name2Index[(*Chess).id]] << (!DEBUG_MODE&&NoWayToGo ? " ***但它沒地方走!!!!!!!!!" : "");
 												HightLight();
 												if (!NoWayToGo || DEBUG_MODE)
 													isHold = true;
 
-												cout << "[Clicked on chess]" << (!DEBUG_MODE&&NoWayToGo  ? " ***但它沒地方走!!!!!!!!!" : "") << endl;
 											}
 										}
 										else if (boardStatus[i] == 0 && Chess == NULL)
@@ -891,14 +923,24 @@ void GUI::EnableGUI()
 												if (src == dst)continue;
 												isHold = false;
 												if (Slot[i].proable)
-													isAskPro = true;
+												{
+													int srcchessid = (*FindChess(src)).id;
+													bool isPawn = srcchessid == 1 || srcchessid == 17;
+													if (isPawn)//有人跟我說步兵要直接升級呢，聽起來真棒
+													{
+														pro = true;
+														//cout << "步直接升變 src ="<<src<<"dst = "<<dst<<"pro =" <<pro << endl;
+														GUIDoMove();
+													}
+													else
+													{
+														isAskPro = true;
+													}
+													
+												}
 												else //不能升變的 即直接Domove 不須詢問
 												{
-													int send[2];
-													send[0] = 2;//在testFileMapping = Ack
-													send[1] = make_move((Square)src, (Square)dst, pro);
-													fm_gm.SendMsg(send, sizeof(send), false);
-													DoMove(src, dst, pro);
+													GUIDoMove();
 												}
 											}
 										}
@@ -921,9 +963,8 @@ void GUI::EnableGUI()
 						else
 							SlotHover[i].visible = false;
 					}
-					if (Mode == AIvsAI &&EShowPV.isContaining(MousePos)) {
-						//TODO!!!!!
-					}
+					EGiveUp.setTexture(EGiveUp.isContaining(MousePos)? "Button_GiveUpH50" :"Button_GiveUp");
+					EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
 				}// End 滑鼠懸浮
 
 			}
@@ -947,9 +988,12 @@ void GUI::EnableGUI()
 						window.draw(Slot[i].getSprite());
 					else if(SlotHover[i].visible)
 						window.draw(SlotHover[i].getSprite());
-				//handleft # text
+			//handleft # text
 				for (int i = 0; i < 10; i++)
 					if(handleft[i].getString() != "0")window.draw(handleft[i]);
+			//DST	
+			if(SlotDST.visible)window.draw(SlotDST.getSprite());
+
 			//Pieces
 				if (isPVon)
 				{

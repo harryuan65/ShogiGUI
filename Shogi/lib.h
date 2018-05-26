@@ -9,6 +9,7 @@
 #include<iostream>
 #include<sstream>
 #include<time.h>
+#include<Windows.h>
 using namespace std;
 #define CHESSWIDTH 51
 #define CHESSHEIGHT 74 
@@ -33,10 +34,8 @@ enum TurnType {
 };
 const int chessID[] = { 1,2,3,4,5,6,9,10,12,13,17,18,19,20,21,22,25,26,28,29 };
 const int Name2Index[] = { -2, 0, 1, 2, 3, 4, 5,-1,-1, 6, 7, -1,8, 9,-1,-1,-1,10,11,12,13,14,15,-1,-1,16,17,-1,18,19 };
-const int initialPos[] = { 15,22,21,23,24,20,-1,-1,-1,-1, 9, 2, 3, 1, 0, 4,-1,-1,-1,-1 };
 const string TurnStr[] = { "Player1","Player2","AI1","AI2" };
 const string chessname[] = {"步","銀","金","角","飛","王","偷","全","龍","馬","步","銀","金","角","飛","玉","偷","全","龍","馬" };
-const string column[] = { "5","4","3","2","1" };
-const string row[] = { "一","二","三","四","五" };
-const string turn_icon[] = { "▲","▽" };
+
+
 #endif // !1

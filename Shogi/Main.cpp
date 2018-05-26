@@ -1,11 +1,59 @@
 #include"lib.h"
 #include<ctime>
 #include<thread>
-
+void SetColor(int color = -1) // 直接先給預設
+{
+	switch (color)
+	{
+	case 0:    // White on Black
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			FOREGROUND_INTENSITY | FOREGROUND_RED |
+			FOREGROUND_GREEN | FOREGROUND_BLUE);
+		break;
+	case 1:    // Red on Black
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			FOREGROUND_INTENSITY | FOREGROUND_RED);
+		break;
+	case 2:    // Green on Black
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			FOREGROUND_INTENSITY | FOREGROUND_GREEN);
+		break;
+	case 3:    // Yellow on Black
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			FOREGROUND_INTENSITY | FOREGROUND_RED |
+			FOREGROUND_GREEN);
+		break;
+	case 4:    // Blue on Black
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			FOREGROUND_INTENSITY | FOREGROUND_BLUE);
+		break;
+	case 5:    // Magenta on Black
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			FOREGROUND_INTENSITY | FOREGROUND_RED |
+			FOREGROUND_BLUE);
+		break;
+	case 6:    // Cyan on Black
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			FOREGROUND_INTENSITY | FOREGROUND_GREEN |
+			FOREGROUND_BLUE);
+		break;
+	case 7:    // Black on Gray
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+			BACKGROUND_INTENSITY | BACKGROUND_INTENSITY);
+		break;
+	
+	default:    // White on Black
+		
+			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),
+				FOREGROUND_INTENSITY | FOREGROUND_RED |
+				FOREGROUND_GREEN | FOREGROUND_BLUE);
+		break;
+	}
+}
 GUI G;
 int buffer[200*sizeof(int)];
 enum type {
-	MOVELIST = 1,AI,SETBOARD
+	MOVELIST = 1,AI,SETBOARD, GAMEOVER
 };
 bool Connect()
 {
@@ -63,6 +111,7 @@ bool Connect()
 
 int main()
 {
+	SetColor();
 	sf::Thread t(&GUI::EnableGUI, &G);
 	
 	t.launch();
@@ -83,7 +132,7 @@ int main()
 	{
 		cout << "[Recv]Waiting for data..." << endl;
 		int getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-		cout << "\tData [" << buffer << "] with size = " << getsize / sizeof(int) << endl;
+		cout << "\tData [ " << buffer << " ] with size = " << getsize / sizeof(int) << endl;
 		switch (buffer[0])
 		{
 		case MOVE_NULL:
@@ -91,27 +140,35 @@ int main()
 			else G.win = 0;
 			break;
 		case MOVE_ILLEGAL:
-			cout << "\n\t[Recv]Invalid Move" << endl;
+			cout << "\t[Recv]Invalid Move" << endl;
 			G.ResetMove();
 			break;
 		case MOVELIST:
 			//cout << "\t[**]Waiting for Movelist" <<endl;
 			getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-			cout << "\n\t[Recv]Movelist size = " << getsize / sizeof(int) << endl;
+			cout << "\t[Recv]Movelist size = " << getsize / sizeof(int) << endl;
 			G.SetMovelist(buffer, getsize);
 			break;
 		case AI:
 			//cout << "\t[**]Waiting for AI" << endl;
 			getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-			cout << "\n\t[Recv]New PV size = " << getsize / sizeof(int) << endl;
+			cout << "\t[Recv]New PV size = " << getsize / sizeof(int) << endl;
 			G.StorePV(buffer, getsize);
 			G.AIDoMove();
+			break;
+		case GAMEOVER:
+			cout << "\t[Recv]Game Over";
+			getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
+			cout << (buffer[0]?"\t\t[WINNER]黑方":"白方") << endl;
+			G.win = buffer[0];
 			break;
 		default:
 			cout << "\t[Recv]Unknown command!!" << endl;
 			break;
 		}
-		G.RefreshScreen = true;
+		SetColor(2);
+		cout << "[Game]Now it's "<<TurnStr[G.Turn]<<"\'s Turn:" << endl;
+		SetColor();
 		memset(buffer, 0, 800);
 	}
 	t.wait();

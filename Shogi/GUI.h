@@ -48,6 +48,7 @@ private:
 	sf::Text Turn_text;
 	Entity Slot[35];
 	Entity SlotHover[35];
+	Entity SlotDST;
 	sf::Texture textureChess;
 	
 	Entity Piece[12];
@@ -91,6 +92,7 @@ public :
 	void InitEnvironment();
 	Entity *FindChess(int square);
 	void UndoMove();
+	void GUIDoMove();
 	void DoMove(int s,int d ,bool pro);
 	void ResetMove();
 	int HightLight();
