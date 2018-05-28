@@ -37,6 +37,7 @@ public:
 class GUI
 {
 private:
+	const char *modename[5] = { "玩家VS電腦","電腦VS玩家","玩家對打","電腦對打","電腦對打 本機VS其他程式" };
 	Move movelist[200];
 	int movelistSize;
 	LatestAction Lact;
@@ -55,8 +56,9 @@ private:
 	Entity PVRfchess[20];
 	Entity EBackground;
 	Entity ETitle;
-	Entity EButton1;
-	Entity EButton2;
+	Entity EPKPlayer;
+	Entity EPKAI;
+	Entity EAIPKAI;
 	Entity EBoard;
 	Entity EAskPro;
 	Entity EYes;
@@ -67,6 +69,10 @@ private:
 	Entity EGiveUp;
 	Entity EUndoMove;
 public :
+	bool isOpen;
+	bool isGameStarted;
+	bool isGameOver;
+	int Scene;
 	bool GotStuff;
 	bool isHold;
 	bool isAskPro;
@@ -90,19 +96,19 @@ public :
 	void InitEnvironment();
 	Entity *FindChess(int square);
 	void UndoMove();
-	void GUIDoMove();
+	void GUIDoMove(bool isSurrender);
 	void DoMove(int s,int d ,bool pro);
 	void ResetMove();
 	int HightLight();
 	void HightLightOff();
 	void SetMovelist(int buf[],int getsize);
 	void StorePV(int buf[],int getsize);
-	bool isWin();
 	bool SetBoard(std::string init = "21 20 18 19 22 0 0 0 0 17 0 0 0 0 0 1 0 0 0 0 6 3 2 4 5 0 0 0 0 0 0 0 0 0 0");
 	void SetCustomBoard();
 	void ModeString();
 	void EnableGUI();
-	
+	void StartGame(int mode);
+	string GetModeName();
 	//PV
 	Entity *FindPVChess(int square);
 	Entity PVDisplayChess[20];//小顆的
@@ -134,8 +140,6 @@ public :
 	string toreadablemove(Move a);
 	string readablemovelist[200];
 	string readablePVlist[200];
-	int movingpiece;
-	int hlon;
 	void ShowAllPos(bool on);
 };
 

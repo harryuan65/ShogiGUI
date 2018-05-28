@@ -37,7 +37,6 @@ sf::Sprite Entity::getSprite() {
 	return sprite;
 }
 
-
 wchar_t *convertCharArrayToLPCWSTR(const char* charArray)
 {
 	wchar_t* wString = new wchar_t[4096];
@@ -48,8 +47,9 @@ void GUI::LoadTexture()
 {
 	EBackground.setTexture("Background");
 	ETitle.setTexture("Title");
-	EButton1.setTexture("Button1");
-	EButton2.setTexture("Button2");
+	EPKPlayer.setTexture("Button1");
+	EPKAI.setTexture("Button2");
+	EAIPKAI.setTexture("Button3");
 	EBoard.setTexture("Board_new");
 	EAskPro.setTexture("Pro");
 	EYes.setTexture("Yes");
@@ -64,8 +64,9 @@ void GUI::LoadTexture()
 void GUI::InitEnvironment()
 {
 	ETitle.setPos(187.0f, 40.0f);
-	EButton1.setPos(288.0f, 211.0f);
-	EButton2.setPos(288.0f, 324.0f);
+	EPKPlayer.setPos(288.0f, 211.0f);
+	EPKAI.setPos(288.0f, 324.0f);
+	EAIPKAI.setPos(288.0f, 427.0f);
 	EBoard.setPos(0.0f, 0.0f);
 
 	srand(time(NULL));
@@ -157,7 +158,7 @@ void GUI::InitEnvironment()
 	SlotDST.visible = false;
 	Turn_text.setFont(font);
 	Turn_text.setColor(sf::Color::Black);
-	Turn_text.setCharacterSize(20);
+	Turn_text.setCharacterSize(TURNSTR_FONTSIZE);
 	Turn_text.setPosition(0.0f, 0.0f);
 
 	EAskPro.setPos(200.0f, 170.0f);
@@ -174,10 +175,6 @@ void GUI::InitEnvironment()
 	Mode = -1;
 	isAskPro = false;
 
-	//EditMode
-	movingpiece = 0;
-	hlon = false;
-
 	//Debug
 	if (DEBUG_MODE)
 	{
@@ -189,6 +186,7 @@ void GUI::InitEnvironment()
 	pv_i = 0;
 	t1 = 0;
 	t2 = 0;
+	isOpen = true;
 }
 GUI::GUI() {
 	GotStuff = false;
@@ -205,27 +203,28 @@ GUI::GUI() {
 }
 bool GUI::SetBoard(std::string init)
 {
-	roundseed = rand() % 666;
-	fdrpath = string(__DATE__);
-	fdrpath.append(("_"+to_string(roundseed)).c_str());
-	if (CreateDirectory(convertCharArrayToLPCWSTR(fdrpath.c_str()), NULL) ||
-		ERROR_ALREADY_EXISTS == GetLastError())
-	{
-		cout << "[SetBoard]Screenshot Folder\""<<fdrpath<<"\" created" << endl;
+	if (NEEDSCRSHOT) {
+		roundseed = rand() % 666;
+		fdrpath = string(__DATE__);
+		fdrpath.append(("_" + to_string(roundseed)).c_str());
+		if (CreateDirectory(convertCharArrayToLPCWSTR(fdrpath.c_str()), NULL) ||
+			ERROR_ALREADY_EXISTS == GetLastError())
+		{
+			cout << "[SetBoard]Screenshot Folder\"" << fdrpath << "\" created" << endl;
+		}
+		else
+		{
+			cout << "[SetBoard]Failed to create directory" << fdrpath << "." << endl;
+		}
 	}
-	else
-	{
-		cout<<"[SetBoard]Failed to create directory"<< fdrpath <<"."<<endl;
-	}
-	if (win >= 0)
-		for (int i = 0; i < BOARD_SIZE; i++)
+	for (int i = 0; i < BOARD_SIZE; i++)
 			boardStatus[i] = 0;
 	
-	int appearance[] = { 2,2,2,2,2,2 };
+	int appearance[] = { 2,2,2,2,2,2 };//每一個棋子最多2個
 	stringstream ss(init);
 	string token = "";
-	int square = 0;//Board count from 0 to 34
-	int count = 0;//Max amount of chess on the go = 12
+	int square = 0;//Board count 從 0 ~ 34
+	int count = 0;//Max amount of chess on the go 從 0 ~ 12
 	while (getline(ss, token, ' '))
 	{
 		int chessvalue = atoi(token.c_str());
@@ -315,6 +314,7 @@ void GUI::SetCustomBoard() {
 
 		if (initboard[0] == '-') {
 			cout << "[SetCustomBoard]取消設定盤面" << endl;
+			break;
 		}
 		cout << initboard << endl;
 		ok = SetBoard(initboard);
@@ -368,12 +368,20 @@ void GUI::UndoMove() {
 	Turn = !Turn;
 
 }
-void GUI::GUIDoMove() {
+void GUI::GUIDoMove(bool isSurrender) {
 	int send[2];
-	send[0] = 2;//在testFileMapping = Ack
-	send[1] = make_move((Square)src, (Square)dst, pro);
+	send[0] = DOMOVE;//在testFileMapping = Ack
+	send[1] = isSurrender?MOVE_NULL:make_move((Square)src, (Square)dst, pro);
 	fm_gm.SendMsg(send, sizeof(send), false);
-	DoMove(src, dst, pro);
+	if (isSurrender)
+	{
+		if (Turn == Player1 || Turn == AI1)
+			win = 1;
+		else if (Turn == Player2 || Turn == AI2)
+			win = 0;
+	}
+	else 
+		DoMove(src, dst, pro);
 }
 void GUI::DoMove(int s, int d, bool p) {
 	Entity *SrcChess = FindChess(s);
@@ -452,26 +460,9 @@ void GUI::DoMove(int s, int d, bool p) {
 	src = 0;
 	dst = 0;
 	pro = false;
-	HightLightOff();
+	if(!DEBUG_MODE)HightLightOff();
 	movecount++;
 	movefinished = true;
-}
-bool GUI::isWin()
-{
-	if (win == 0)
-	{
-		cout << "[isWIN]Game Over by winner: WHITE";
-		EWwin.visible = true;
-		return true;
-	}
-	else if (win == 1)
-	{
-		cout << "[isWIN]Game Over by winner: BLACK";
-		EBwin.visible = true;
-		return true;
-	}
-	else
-		return false;
 }
 void GUI::SetMovelist(int buf[], int getsize)
 {
@@ -703,6 +694,7 @@ void GUI::HightLightOff()
 }
 int GUI::HightLight()//依照當下的src去找
 {
+	HightLightOff();
 	SlotDST.visible = false;
 	int count = 0;
 	cout << "\t[HightLight]" << chessname[Name2Index[(*FindChess(src)).id]] << "在" << src << "可以走:";
@@ -735,7 +727,7 @@ int GUI::HightLight()//依照當下的src去找
 }
 void GUI::ResetMove()
 {
-	SlotDST.visible = true;
+	if(movecount>0)SlotDST.visible = true;
 	src = 0;
 	dst = 0;
 	pro = 0;
@@ -745,25 +737,74 @@ void GUI::ResetMove()
 }
 void GUI::ModeString()
 {
-
 	if (Mode >= 0)
 		Turn_text.setString(TurnStr[Turn] + "\'s Turn");
-	else if (EDIT_MODE && !hlon)
-		Turn_text.setString("EDIT_MODE: Piece on " + to_string(Piece[movingpiece].getSprite().getPosition().x) + " " + to_string(Piece[movingpiece].getSprite().getPosition().y));
-	else if (hlon)
-		Turn_text.setString("EDIT_MODE: Highlight = " + to_string(Highlight) + " pos = " + to_string(Slot[Highlight].getSprite().getPosition().x) + ", " + to_string(Slot[Highlight].getSprite().getPosition().y));
-	else if (DEBUG_MODE)
-	{
-		Turn_text.setString("DEBUG_MODE");
-	}
 	else
 		Turn_text.setString("Not Started");
+}
+string GUI::GetModeName() {
+	if (Mode >= PlayervsAI)
+		return modename[Mode];
+	else
+		return "[GetModeName]Not Started!";
 }
 string GUI::toreadablemove(Move a)
 {
 	return to_string(from_sq(a)) + " " + to_string(to_sq(a)) + " "+to_string(is_pro(a));
 }
 
+void GUI::StartGame(int mode)
+{
+	int buf[1];
+	buf[0] = GAMEMODE;
+	fm_gm.SendMsg(buf, sizeof(int), true);
+	buf[0] = mode;
+	fm_gm.SendMsg(buf, sizeof(int), true);
+	int ack = fm_mg.RecvMsg(buf, sizeof(int), true);
+	if (buf[0] == ACK)
+	{
+		if (mode >= PlayervsAI && mode <= AIvsOtherAI)
+		{
+			isGameOver = false;
+			Mode = mode;
+			Scene = Ingame;
+			isGameStarted = true;
+
+			SetBoard();
+			switch (mode)
+			{
+			case PlayervsAI:
+				Turn = Player1;
+				break;
+			case AIvsPlayer:
+				Turn = AI1;
+				UpdatePVnBoard();
+				break;
+			case PlayervsPlayer:
+				Turn = Player1;
+				break;
+			case AIvsAI:
+				Turn = AI1;
+				UpdatePVnBoard();
+				break;
+			case AIvsOtherAI:
+				Turn = AI1;
+				UpdatePVnBoard();
+				break;
+			default:
+				cout << "[Mode]ERROR" << endl;
+				break;
+			}
+
+			cout << "[StartGame]GameStarted with mode[" << modename[Mode] << "]" << endl;
+		}
+	}
+	else
+	{
+
+		cout << "[StartGame]Mode < 0!!" << endl;
+	}
+}
 void GUI::EnableGUI()
 {
 	sf::RenderWindow window(sf::VideoMode(780,780), "Minishogi");
@@ -772,310 +813,303 @@ void GUI::EnableGUI()
 	window.setIcon(image.getSize().x, image.getSize().y, image.getPixelsPtr());
 	float unit = 2.0f;
 	sf::Event event;
+	sf::Event::EventType t;
+	sf::Event::KeyEvent k;
+	sf::Vector2i MousePos;
 	while (window.isOpen())
 	{
 		ModeString();	
-		if (GotStuff||window.pollEvent(event))
+		if (GotStuff||window.pollEvent(event))//若有資料傳輸過來
 		{	
-			if(!GotStuff){
-
-				sf::Event::EventType t = event.type;
-				sf::Event::KeyEvent k = event.key;
-				if (t == sf::Event::Closed)
-					window.close();
-				sf::Vector2i MousePos = sf::Mouse::getPosition(window);
-
-				//按下功能按鈕
+			t = event.type;
+			k = event.key;
+			if (t == sf::Event::Closed)
+				window.close();
+			MousePos = sf::Mouse::getPosition(window);
+			//Switch Scene
+			switch (Scene)
+			{
+				
+			case Lobby:
 				if (t == sf::Event::MouseButtonPressed)
 				{
-					int color;
-					if (win >= 0)
+					if (EPKPlayer.isContaining(MousePos))
 					{
-						color = win;
-						cout << "[GUI]win :" << (color ? "BLACK" : "WHITE") << endl;
-
-						if ((EBwin.visible && EBwin.isContaining(MousePos)) || (EWwin.visible && EWwin.isContaining(MousePos)))
-						{
-							SetBoard();
-							win = NOONEWIN;
-
-							cout << "[GUI]Game Reset" << endl;
-						}
+						StartGame(PlayervsPlayer);
 					}
-					else if (Mode != PlayervsPlayer && EShowPV.isContaining(MousePos))
-						SwitchPV();
-					else if (EGiveUp.isContaining(MousePos))
+					else if (EPKAI.isContaining(MousePos)) {
+						StartGame(PlayervsAI);
+					}
+					else if (EAIPKAI.isContaining(MousePos))
 					{
-						cout << "[GUI]投降" << endl;
-						int send[1];
-						send[0] = MOVE_NULL;
-						fm_gm.SendMsg(send, sizeof(int), false);
-
+						StartGame(AIvsAI);
 					}
 				}
-
-				if (EDIT_MODE)
+				else // Hovering in lobby
 				{
-					if (t == sf::Event::KeyPressed)
+					if (EPKPlayer.isContaining(MousePos))
 					{
-						if (k.code == sf::Keyboard::P)
-						{
-							Piece[movingpiece].setFace(Rfchess, Piece[movingpiece].id ^ 16);
-						}
-						else if (k.code >= 75 && k.code <= 77)
-						{
-							movingpiece = k.code - 65;
-							cout << "movingpiece = " << movingpiece << endl;
-						}
-						else if (k.code >= 26 && k.code <= 35)
-						{
-							movingpiece = k.code - 26;
-							cout << "movingpiece = " << movingpiece << endl;
-						}
-						else if (k.code == sf::Keyboard::Z)
-						{
-							ShowAllPos(true);
-						}
-						else if (k.code == sf::Keyboard::X)
-						{
-							ShowAllPos(false);
-						}
-						else if (k.code == sf::Keyboard::A)
-						{
-							Slot[Highlight].visible = true;
-							hlon = true;
-						}
-						else if (k.code == sf::Keyboard::S)
-						{
-							Slot[Highlight].visible = false;
-							hlon = false;
-						}
-						else if (k.code == sf::Keyboard::C)
-						{
-							if (Highlight > 0)Highlight--;
-						}
-						else if (k.code == sf::Keyboard::V)
-						{
-							if (Highlight < 34)Highlight++;
-						}
-						else if (k.code == sf::Keyboard::B)
-						{
-							unit--;
-						}
-						else if (k.code == sf::Keyboard::N)
-						{
-							unit++;
-						}
-						else
-						{
-							sf::Vector2f ScurrentPos = Slot[Highlight].getSprite().getPosition();
-							sf::Vector2f PcurrentPos = Piece[movingpiece].getSprite().getPosition();
-							if (k.code == sf::Keyboard::Up)
-							{
-								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x, ScurrentPos.y - unit));
-								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x, PcurrentPos.y - unit));
-							}
-							if (k.code == sf::Keyboard::Down)
-							{
-								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x, ScurrentPos.y + unit));
-								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x, PcurrentPos.y + unit));
-							}
-							if (k.code == sf::Keyboard::Left)
-							{
-								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x - unit, ScurrentPos.y));
-								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x - unit, PcurrentPos.y));
-							}
-							if (k.code == sf::Keyboard::Right)
-							{
-								if (hlon)Slot[Highlight].setPos(sf::Vector2f(ScurrentPos.x + unit, ScurrentPos.y));
-								else Piece[movingpiece].setPos(sf::Vector2f(PcurrentPos.x + unit, PcurrentPos.y));
-							}
-						}
-
+						EPKPlayer.setTexture("Button1H");
 					}
-				}
-				else if (DEBUG_MODE || Mode >= 0 && (Turn == Player1 || Turn == Player2) && win == NOONEWIN)
-				{
-					MousePos = sf::Mouse::getPosition(window);
-					// 按下滑鼠
-					if (t == sf::Event::MouseButtonPressed)
-					{
-						//右鍵重新選棋
-						if (k.code == sf::Mouse::Right)
-							ResetMove();
-						//按下左鍵
-						else if (k.code == sf::Mouse::Left)
-						{
-							//詢問可升變者
-							if (isAskPro)
-							{
-								if (EYes.isContaining(MousePos))
-									pro = true;
-								else if (ENo.isContaining(MousePos))
-									pro = false;
+					else
+						EPKPlayer.setTexture("Button1");
+					
+					if (EPKAI.isContaining(MousePos)) {
+						EPKAI.setTexture("Button2H");
+					}
+					else
+						EPKAI.setTexture("Button2");
+					if (EAIPKAI.isContaining(MousePos))
+						EAIPKAI.setTexture("Button3H");
+					else
+						EAIPKAI.setTexture("Button3");
 
-								isAskPro = false;
-								isHold = false;
-								GUIDoMove();
-							}
-							//點按棋子
-							else if (!isPVon)
+				}
+				break;
+			case Ingame:
+				if (!GotStuff) {//若不是主程式傳資料過來，要靠點按來input				
+					//按下功能按鈕
+					if (t == sf::Event::MouseButtonPressed)//這邊有分點按跟懸浮 要特別註明
+					{
+						int color;
+						if (win >= 0)
+						{
+							color = win;
+							cout << "[GUI]win :" << (color ? "BLACK" : "WHITE") << endl;
+							//贏了並且點一下畫面
+							if (EBwin.isContaining(MousePos) ||  EWwin.isContaining(MousePos))
 							{
-								for (int i = 0; i < 35; i++)
+								isGameOver = true;
+								Scene = Lobby;
+								win = NOONEWIN;
+								int send[1];
+								send[0] = RESTART;
+								fm_gm.SendMsg(send, sizeof(int), true);
+								cout << "[GUI]Game Reset" << endl;
+							}
+						}
+						else if (Mode != PlayervsPlayer && EShowPV.isContaining(MousePos))
+							SwitchPV();
+						else if (Mode!=AIvsAI&&EGiveUp.isContaining(MousePos))
+						{
+							cout << "[GUI]投降" << endl;
+							GUIDoMove(true);
+						}
+					}
+					
+					//點棋子
+					if (DEBUG_MODE || Mode >= 0 && (Turn == Player1 || Turn == Player2) && win == NOONEWIN)
+					{
+						MousePos = sf::Mouse::getPosition(window);
+						// 按下滑鼠
+						if (t == sf::Event::MouseButtonPressed)
+						{
+							//右鍵重新選棋
+							if (k.code == sf::Mouse::Right)
+								ResetMove();
+							//按下左鍵
+							else if (k.code == sf::Mouse::Left)
+							{
+								//詢問可升變者
+								if (isAskPro)
 								{
-									if (Slot[i].getSprite().getGlobalBounds().contains(MousePos.x, MousePos.y))
+									if (EYes.isContaining(MousePos))
 									{
-										Entity *Chess = FindChess(i);
-										if (boardStatus[i] && Chess != NULL) {//有按到棋子
-											if (isHold && (DEBUG_MODE || Slot[i].visible)) {//已經選過棋且該位置可以按
-
-												dst = i;
-												if (src == dst)continue;
-												isHold = false;
-												if (Slot[i].proable)
-												{
-													int srcchessid = (*FindChess(src)).id;
-													bool isPawn = srcchessid == 1 || srcchessid == 17;
-													if (isPawn)//有人跟我說步兵要直接升級呢，聽起來真棒
-													{
-														pro = true;
-														//cout << "步直接升變 src =" << src << "dst = " << dst << "pro =" << pro << endl;
-														GUIDoMove();
-													}
-													else
-													{
-														isAskPro = true;
-													}
-												}
-												else {//不能升變的 即直接Domove 我是覺得不用詢問了啦
-													GUIDoMove();
-												}
-											}
-											else if ((((*Chess).id & 16) > 0) == Turn)//未選棋，此時先選到自己的棋
-											{
-												src = i;
-												cout << "\t[Clicked]On " << ((*Chess).id > 16 ? "b" : "w") << chessname[Name2Index[(*Chess).id]] << (!DEBUG_MODE&&NoWayToGo ? " ***但它沒地方走!!!!!!!!!" : "");
-												HightLight();
-												if (!NoWayToGo || DEBUG_MODE)
-													isHold = true;
-
-											}
-										}
-										else if (boardStatus[i] == 0 && Chess == NULL)
+										pro = true; 
+										isAskPro = false;
+										isHold = false;
+										GUIDoMove(false);
+									}
+									else if (ENo.isContaining(MousePos))
+									{
+										pro = false;
+										isAskPro = false;
+										isHold = false;
+										GUIDoMove(false);
+									}
+								}
+								//點按棋子
+								else if (!isPVon)
+								{
+									for (int i = 0; i < 35; i++)
+									{
+										if (Slot[i].getSprite().getGlobalBounds().contains(MousePos.x, MousePos.y))
 										{
-											if (isHold && (DEBUG_MODE || Slot[i].visible))
-											{
-												dst = i;
-												if (src == dst)continue;
-												isHold = false;
-												if (Slot[i].proable)
-												{
-													int srcchessid = (*FindChess(src)).id;
-													bool isPawn = srcchessid == 1 || srcchessid == 17;
-													if (isPawn)//有人跟我說步兵要直接升級呢，聽起來真棒
+											Entity *Chess = FindChess(i);
+											if (boardStatus[i] && Chess != NULL) {//有按到棋子
+												if (isHold && (DEBUG_MODE || Slot[i].visible)) {//已經選過棋且該位置可以按
+
+													dst = i;
+													if (src == dst)continue;
+													isHold = false;
+													if (Slot[i].proable)
 													{
-														pro = true;
-														//cout << "步直接升變 src ="<<src<<"dst = "<<dst<<"pro =" <<pro << endl;
-														GUIDoMove();
+														int srcchessid = (*FindChess(src)).id;
+														bool isPawn = srcchessid == 1 || srcchessid == 17;
+														if (isPawn)//有人跟我說步兵可以直接升級呢，聽起來真棒
+														{
+															pro = true;
+															GUIDoMove(false);
+														}
+														else
+														{
+															isAskPro = true;
+														}
+													}
+													else {//不能升變的 即直接Domove 我是覺得不用詢問了啦
+														GUIDoMove(false);
+													}
+												}
+												else if ((((*Chess).id & 16) > 0) == Turn)//未選棋，此時先選到自己的棋
+												{
+													src = i;
+													if (DEBUG_MODE)
+													{
+														isHold = true;
+														cout << "[Debug-GUI]Picked Chess:"<< (*Chess).id <<endl;
 													}
 													else
 													{
-														isAskPro = true;
-													}
+														HightLight();
+														if (!NoWayToGo)
+															isHold = true;
+														cout << "\t[Clicked]On " << ((*Chess).id > 16 ? "b" : "w") << chessname[Name2Index[(*Chess).id]] << (!DEBUG_MODE&&NoWayToGo ? " ***但它沒地方走!!!!!!!!!" : "");
 
+													}
+													
 												}
-												else //不能升變的 即直接Domove 不須詢問
+											}
+											else if (boardStatus[i] == 0 && Chess == NULL)
+											{
+												if (isHold && (DEBUG_MODE || Slot[i].visible))
 												{
-													GUIDoMove();
+													dst = i;
+													if (src == dst)continue;
+													isHold = false;
+													if (Slot[i].proable)
+													{
+														int srcchessid = (*FindChess(src)).id;
+														bool isPawn = srcchessid == 1 || srcchessid == 17;
+														if (isPawn)//有人跟我說步兵要直接升級呢，聽起來真棒
+														{
+															pro = true;
+															//cout << "步直接升變 src ="<<src<<"dst = "<<dst<<"pro =" <<pro << endl;
+															GUIDoMove(false);
+														}
+														else
+														{
+															isAskPro = true;
+														}
+
+													}
+													else //不能升變的 即直接Domove 不須詢問
+													{
+														GUIDoMove(false);
+													}
 												}
 											}
 										}
 									}
 								}
-							}
 
-						}//End 按下左鍵
-					}//End 按下滑鼠
-					 // 棋盤內滑鼠懸浮
-					else if (!isPVon&&win == NOONEWIN)
-					{
-						for (int i = 0; i < 35; i++)
+							}//End 按下左鍵
+						}//End 按下滑鼠
+						 // 棋盤內滑鼠懸浮
+						else if (!isPVon&&win == NOONEWIN)
 						{
-							Entity *Chess = FindChess(i);
-							if (!isHold&&Chess != NULL && (((*Chess).id & 16) > 0) == Turn && Slot[i].isContaining(MousePos))
+							for (int i = 0; i < 35; i++)
 							{
-								SlotHover[i].visible = true;
+								Entity *Chess = FindChess(i);
+								if (!isHold&&Chess != NULL && (((*Chess).id & 16) > 0) == Turn && Slot[i].isContaining(MousePos))
+								{
+									SlotHover[i].visible = true;
+								}
+								else
+									SlotHover[i].visible = false;
 							}
-							else
-								SlotHover[i].visible = false;
-						}
 
-					}// End 棋盤內滑鼠懸浮
+						}// End 棋盤內滑鼠懸浮
 
-				}
+					}
 
-				//棋盤外懸浮
-				if (Mode != PlayervsPlayer)EShowPV.setTexture(EShowPV.isContaining(MousePos) ? "Button_ShowPVH50" : "Button_ShowPV");
-				if (Mode != AIvsAI)EGiveUp.setTexture(EGiveUp.isContaining(MousePos) ? "Button_GiveUpH50" : "Button_GiveUp");
-				if (Mode != AIvsAI)EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
+					//棋盤外懸浮
+					if (Mode != PlayervsPlayer)EShowPV.setTexture(EShowPV.isContaining(MousePos) ? "Button_ShowPVH50" : "Button_ShowPV");
+					if (Mode != AIvsAI)EGiveUp.setTexture(EGiveUp.isContaining(MousePos) ? "Button_GiveUpH50" : "Button_GiveUp");
+					//if (Mode != AIvsAI)EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
+				}//End GotStuff
+				break;
 			}
+			//End Switch Scene
+
+			
 		}
-
-
-		window.draw(EBoard.getSprite());
-		window.draw(Turn_text);
-
-		//Green Slots and Grey SlotHover
-		for (int i = 0; i < 35; i++)
-			if (Slot[i].visible)
-				window.draw(Slot[i].getSprite());
-			else if (SlotHover[i].visible)
-				window.draw(SlotHover[i].getSprite());
-		//handleft # text
-		for (int i = 0; i < 10; i++)
-			if (handleft[i].getString() != "0")window.draw(handleft[i]);
-		//DST	
-		if (SlotDST.visible)window.draw(SlotDST.getSprite());
-
-		//Pieces
-		if (isPVon)
+		//************************************************************************
+		//DRAW
+		window.draw(EBackground.getSprite());
+		switch (Scene)
 		{
-			t2 = clock();
-			double tp = (double)((t2 - t1) / (double)(CLOCKS_PER_SEC));
-			if (tp >= PVSPEED)
-				PV_DoMove();
-			for (int i = 0; i < 12; i++)if (PVPiece[i].id > 0)
-				window.draw(PVPiece[i].getSprite());
-		}
-		else
-			for (int i = 0; i < 12; i++)if (Piece[i].id > 0)
-				window.draw(Piece[i].getSprite());
+		case Lobby:
+			window.draw(ETitle.getSprite());
+			window.draw(EPKPlayer.getSprite());
+			window.draw(EPKAI.getSprite());
+			window.draw(EAIPKAI.getSprite());
+			break;
+		case Ingame:
+			window.draw(EBoard.getSprite());
+			window.draw(Turn_text);
 
-		//Check reference pieces' faces
-			//for (int i = 0; i < 20; i++)if (Rfchess[i].visible)window.draw(Rfchess[i].getSprite());
-		//Check PV reference pieces' faces
-			//for (int i = 0; i < 20; i++)if (PVRfchess[i].visible)window.draw(PVRfchess[i].getSprite());
+			//Green Slots and Grey SlotHover
+			for (int i = 0; i < 35; i++)
+				if (Slot[i].visible)
+					window.draw(Slot[i].getSprite());
+				else if (SlotHover[i].visible)
+					window.draw(SlotHover[i].getSprite());
+			//handleft # text
+			for (int i = 0; i < 10; i++)
+				if (handleft[i].getString() != "0")window.draw(handleft[i]);
+			//DST	
+			if (SlotDST.visible)window.draw(SlotDST.getSprite());
 
-		//Pro window
-		if (isAskPro)
-		{
-			window.draw(EAskPro.getSprite());
-			window.draw(EYes.getSprite());
-			window.draw(ENo.getSprite());
+			//Pieces
+			if (isPVon)
+			{
+				t2 = clock();
+				double tp = (double)((t2 - t1) / (double)(CLOCKS_PER_SEC));
+				if (tp >= PVSPEED)
+					PV_DoMove();
+				for (int i = 0; i < 12; i++)if (PVPiece[i].id > 0)
+					window.draw(PVPiece[i].getSprite());
+			}
+			else
+				for (int i = 0; i < 12; i++)if (Piece[i].id > 0)
+					window.draw(Piece[i].getSprite());
+
+			//Pro window
+			if (isAskPro)
+			{
+				window.draw(EAskPro.getSprite());
+				window.draw(EYes.getSprite());
+				window.draw(ENo.getSprite());
+			}
+
+			if (Mode >= 0)
+			{
+				if (Mode != PlayervsPlayer)
+					window.draw(EShowPV.getSprite());
+				window.draw(EGiveUp.getSprite());
+				//window.draw(EUndoMove.getSprite());
+			}
+			//Win 
+			if (win >= 0)
+				window.draw(win == WHITEWIN ? EWwin.getSprite() : EBwin.getSprite());
+			break;
+
 		}
 
-		if (Mode >= 0)
-		{
-			if(Mode != PlayervsPlayer)
-				window.draw(EShowPV.getSprite());
-			window.draw(EGiveUp.getSprite());
-			window.draw(EUndoMove.getSprite());
-		}
-		//Win 
-		if (win >= 0)
-			window.draw(win == WHITEWIN ? EWwin.getSprite() : EBwin.getSprite());
 		window.display();
-		if (movefinished)
+		//************************************************************************
+
+		if (NEEDSCRSHOT&&movefinished)
 		{
 			scrs = window.capture();
 			if (scrs.saveToFile(fdrpath + "/" + to_string(movecount) + ".png")) {

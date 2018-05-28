@@ -4,122 +4,63 @@
 
 GUI G;
 int buffer[200*sizeof(int)];
-enum type {
-	MOVELIST = 1,AI,SETBOARD, GAMEOVER
-};
-bool Connect()
-{
-	char *mode[] = { "玩家VS電腦","電腦VS玩家","玩家對打","電腦對打","電腦對打 本機VS其他程式" };
-	//char *mode[] = { "[Player Vs CPU]","[CPU VS Player]","[Player vs Player]","[CPU vs CPU]","[CPU vs CPU(Others)]" };
 
-	
-	if (EDIT_MODE||DEBUG_MODE)
-	{
-		cout << "*******[Debug mode]**********" << endl;
-	}
-	else
-	{
-		cout << "[Waiting to connect]" << endl;
-		G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-		cout << "[Connected]" << "Mode = ";
-		int Mode = buffer[0];
-		if (Mode >= PlayervsAI && Mode < AIvsOtherAI)
-		{
-			cout << mode[Mode] << "]" << endl;
-			switch (Mode)
-			{
-			case PlayervsAI:
-				G.Turn = Player1;
-				break;
-			case AIvsPlayer:
-				G.Turn = AI1;
-				break;
-			case PlayervsPlayer:
-				G.Turn = Player1;
-				break;
-			case AIvsAI:
-				G.Turn = AI1;
-				break;
-			case AIvsOtherAI:
-				G.Turn = AI1;
-				break;
-			default:
-				cout<<"[Mode]ERROR"<<endl;
-				break;
-			}
-			G.Mode = Mode;
-		}
-		else 
-		{
-			cout << "[Mode Error!]" << endl;
-			return false;
-		}
-	}
-	
-	
-	return true;
-}
+
 
 
 int main()
 {
 	sf::Thread t(&GUI::EnableGUI, &G);
-	
-	t.launch();
+	bool breakflag = false;
 	srand(time(NULL));
-	while (!Connect())
+
+	t.launch();
+	while (G.isOpen)
 	{
-		cerr << "[Failed to connect]"<<endl;
-		system("clr");
-	}
-	
-	G.SetBoard();
-	G.UpdatePVnBoard();
-	
-	int src = 0;
-	int dst = 0;
-	bool pro = 0;
-	while (true)
-	{
-		cout << "[Recv]Waiting for data..." << endl;
-		G.GotStuff = false;
-		int getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-		cout << "\tData [ " << buffer << " ] with size = " << getsize / sizeof(int) << endl;
-		switch (buffer[0])
+		//等待介面與主程式溝通初始化mode
+		while (!G.isGameStarted);
+		cout << "**********************************\n[GUI]New Round Started\n**********************************" << endl;
+		while (!G.isGameOver)
 		{
-		case MOVE_NULL:
-			if (G.Turn)G.win = 1;
-			else G.win = 0;
-			break;
-		case MOVE_ILLEGAL:
-			cout << "\t[Recv]Invalid Move" << endl;
-			G.ResetMove();
-			break;
-		case MOVELIST:
-			//cout << "\t[**]Waiting for Movelist" <<endl;
-			getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-			cout << "\t[Recv]Movelist size = " << getsize / sizeof(int) << endl;
-			G.SetMovelist(buffer, getsize);
-			break;
-		case AI:
-			//cout << "\t[**]Waiting for AI" << endl;
-			getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-			cout << "\t[Recv]New PV size = " << getsize / sizeof(int) << endl;
-			G.StorePV(buffer, getsize);
-			G.AIDoMove();
-			break;
-		case GAMEOVER:
-			cout << "\t[Recv]Game Over";
-			getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-			cout << (buffer[0]?"\t\t[WINNER]黑方":"白方") << endl;
-			G.win = buffer[0];
-			break;
-		default:
-			cout << "\t[Recv]Unknown command!!" << endl;
-			break;
+			cout << "[Recv]Waiting for data..." << endl;
+			G.GotStuff = false;
+			int getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
+			//TODO flag to recycle the game loop
+			switch (buffer[0])
+			{
+			case MOVE_NULL:
+				cout << "[Recv]MOVE_NULL" << endl;
+				if (G.Turn)G.win = 1;
+				else G.win = 0;
+				breakflag = true;
+				break;
+			case MOVELIST:
+				getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
+				cout << "\t[Recv]Movelist size = " << getsize / sizeof(int) << endl;
+				G.SetMovelist(buffer, getsize);
+				break;
+			case AIPV:
+				getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
+				cout << "\t[Recv]New PV size = " << getsize / sizeof(int) << endl;
+				G.StorePV(buffer, getsize);
+				G.AIDoMove();
+				break;
+			case GAMEOVER:
+				cout << "\t[Recv]Game Over";
+				getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
+				cout << (buffer[0] ? "\t\t[Recv]Winner後手" : "先手") << endl;
+				G.win = buffer[0];
+				breakflag = true;
+				break;
+			default:
+				cout << "\t[Recv]Unknown command!!" << endl;
+				break;
+			}
+			G.GotStuff = true;
+			memset(buffer, 0, 800);
+			if (breakflag)break;
 		}
-		G.GotStuff = true;
-		memset(buffer, 0, 800);
+		cout << "\n\t[Main]遊戲結束. Relooping..." << endl;
 	}
 	t.wait();
 	return 0;
