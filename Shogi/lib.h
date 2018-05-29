@@ -22,7 +22,7 @@ using namespace std;
 #define TURNSTR_FONTSIZE 25
 #define PVSPEED 1.5 //sec
 enum IndicatorType {
-	GAMEMODE = 1, ACK, MOVELIST, DOMOVE, AIPV, GAMEOVER, RESTART
+	GAMEMODE = 1, ACK, MOVELIST, DOMOVE, AIPV, GAMEOVER, RESTART,BREAK
 };
 enum GAMEMODE {
 	PlayervsAI,AIvsPlayer,PlayervsPlayer,AIvsAI,AIvsOtherAI

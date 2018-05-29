@@ -18,13 +18,20 @@ int main()
 	while (G.isOpen)
 	{
 		//等待介面與主程式溝通初始化mode
-		while (!G.isGameStarted);
+		while (!G.isGameSet);
 		cout << "**********************************\n[GUI]New Round Started\n**********************************" << endl;
+		int getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
+		if(buffer[0] == ACK)
+			G.gamemodebuf[0] = ACK;
+		else
+		{
+			cout << "GAMEMODE NOT SYNC" << endl;
+		}
 		while (!G.isGameOver)
 		{
 			cout << "[Recv]Waiting for data..." << endl;
 			G.GotStuff = false;
-			int getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
+			getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
 			//TODO flag to recycle the game loop
 			switch (buffer[0])
 			{
@@ -53,7 +60,7 @@ int main()
 				breakflag = true;
 				break;
 			default:
-				cout << "\t[Recv]Unknown command!!" << endl;
+				cout << "\t[Recv]Unknown command!! [ "<<buffer[0]<<"]" << endl;
 				break;
 			}
 			G.GotStuff = true;

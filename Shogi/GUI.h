@@ -57,8 +57,10 @@ private:
 	Entity EBackground;
 	Entity ETitle;
 	Entity EPKPlayer;
-	Entity EPKAI;
+	Entity EPKAI_P;
+	Entity EPKAI_A;
 	Entity EAIPKAI;
+	Entity EToLobby;
 	Entity EBoard;
 	Entity EAskPro;
 	Entity EYes;
@@ -69,8 +71,9 @@ private:
 	Entity EGiveUp;
 	Entity EUndoMove;
 public :
+	int gamemodebuf[1];
 	bool isOpen;
-	bool isGameStarted;
+	bool isGameSet;
 	bool isGameOver;
 	int Scene;
 	bool GotStuff;
