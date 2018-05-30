@@ -1,3 +1,4 @@
+//#define _WIN32_WINNT 0x0500 //加入這行定義，要放最上面
 #include"lib.h"
 #include<ctime>
 #include<thread>
@@ -10,23 +11,25 @@ int buffer[200*sizeof(int)];
 
 int main()
 {
+	HWND hWnd = GetConsoleWindow(); //隱藏視窗1
+	ShowWindow(hWnd, SW_HIDE); //隱藏視窗2
 	sf::Thread t(&GUI::EnableGUI, &G);
 	bool breakflag = false;
 	srand(time(NULL));
-
 	t.launch();
 	while (G.isOpen)
 	{
 		//等待介面與主程式溝通初始化mode
+		breakflag = false;
+		cout << "Waiting for gui" << endl;
 		while (!G.isGameSet);
-		cout << "**********************************\n[GUI]New Round Started\n**********************************" << endl;
+		cout << "Syncing gamemode"<<endl;
 		int getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-		if(buffer[0] == ACK)
-			G.gamemodebuf[0] = ACK;
-		else
-		{
-			cout << "GAMEMODE NOT SYNC" << endl;
-		}
+		while (buffer[0] != ACK);
+		cout << "GAME SYNCED" << endl;
+		G.gamemodebuf[0] = ACK;
+		cout << "**********************************\n[GUI]New Round Started\n**********************************" << endl;
+
 		while (!G.isGameOver)
 		{
 			cout << "[Recv]Waiting for data..." << endl;
@@ -53,10 +56,10 @@ int main()
 				G.AIDoMove();
 				break;
 			case GAMEOVER:
-				cout << "\t[Recv]Game Over";
+				cout << "\t[Recv]Game Over";/*
 				getsize = G.fm_mg.RecvMsg(buffer, sizeof(buffer), true);
-				cout << (buffer[0] ? "\t\t[Recv]Winner後手" : "先手") << endl;
-				G.win = buffer[0];
+				cout << (buffer[0] ? "\t\t[Recv]Winner後手" : "先手") << endl;*/
+				G.isGameSet = false;
 				breakflag = true;
 				break;
 			default:

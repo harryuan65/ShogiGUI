@@ -62,6 +62,7 @@ void GUI::LoadTexture()
 	EUndoMove.setTexture("Button_UndoMove");
 	SlotDST.setTexture("rect_b_bl50");
 	EToLobby.setTexture("ButtonToLobby");
+	EArrow.setTexture("arrow");
 }
 void GUI::InitEnvironment()
 {
@@ -71,7 +72,7 @@ void GUI::InitEnvironment()
 	EPKPlayer.setPos(288.0f, 411.0f);
 	EAIPKAI.setPos(288.0f, 511.0f);
 	EBoard.setPos(0.0f, 0.0f);
-
+	EArrow.setPos(450.0f, 50.0f);
 	srand(time(NULL));
 	//Board blocks 0~25
 	for (int i = 0, k = 0; i < 5; i++)
@@ -382,10 +383,6 @@ void GUI::GUIDoMove(bool isSurrender) {
 			win = 1;
 		else if (Turn == Player2 || Turn == AI2)
 			win = 0;
-
-		int res[1];
-		res[0] = RESTART;
-		fm_gm.SendMsg(res, sizeof(int), true);
 	}
 	else 
 		DoMove(src, dst, pro);
@@ -775,6 +772,7 @@ void GUI::StartGame(int mode)
 			Mode = mode;
 			Scene = Ingame;
 			isGameOver = false;
+			isGameSet = true;
 			SetBoard();
 			switch (mode)
 			{
@@ -819,7 +817,7 @@ void GUI::EnableGUI()
 	while (window.isOpen())
 	{
 		ModeString();	
-		if (window.pollEvent(event))//若有資料傳輸過來or有滑鼠動作
+		if (window.pollEvent(event))//有滑鼠動作
 		{	
 			t = event.type;
 			k = event.key;
@@ -884,13 +882,15 @@ void GUI::EnableGUI()
 						else if (EToLobby.isContaining(MousePos))
 						{
 							gamemodebuf[0] = -1;
-							isGameSet = false;
-							isGameOver = true;
 							win = NOONEWIN;
 							Scene = Lobby;
 							int send[1];
-							send[0] = BREAK;
-							fm_gm.SendMsg(send, sizeof(int), true);
+							if (!isGameOver) {
+								send[0] = BREAK;
+								fm_gm.SendMsg(send, sizeof(int), true);
+							}
+							isGameSet = false;
+							isGameOver = true;
 							send[0] = RESTART;
 							fm_gm.SendMsg(send, sizeof(int), true);
 							cout << "[GUI]Game Reset" << endl;
@@ -1034,7 +1034,7 @@ void GUI::EnableGUI()
 
 					//棋盤外懸浮
 					if (Mode != PlayervsPlayer)EShowPV.setTexture(EShowPV.isContaining(MousePos) ? "Button_ShowPVH50" : "Button_ShowPV");
-					if (Mode != AIvsAI)EGiveUp.setTexture(EGiveUp.isContaining(MousePos) ? "Button_GiveUpH50" : "Button_GiveUp");
+					if (!isGameOver &&Mode != AIvsAI)EGiveUp.setTexture(EGiveUp.isContaining(MousePos) ? "Button_GiveUpH50" : "Button_GiveUp");
 					if (Mode != AIvsAI && (Turn == Player1 || Turn == Player2))EToLobby.setTexture(EToLobby.isContaining(MousePos)?"ButtonTOLobbyH":"ButtonTOLobby");
 					//if (Mode != AIvsAI)EUndoMove.setTexture(EUndoMove.isContaining(MousePos) ? "Button_UndoMoveH50" : "Button_UndoMove");
 				
@@ -1098,12 +1098,14 @@ void GUI::EnableGUI()
 			{
 				if (Mode != PlayervsPlayer)
 					window.draw(EShowPV.getSprite());
-				if(Turn==Player1||Turn == Player2 && !isGameOver)window.draw(EGiveUp.getSprite());
+				if((Turn==Player1||Turn == Player2) && !isGameOver)window.draw(EGiveUp.getSprite());
 				//window.draw(EUndoMove.getSprite());
 			}
 			//Win 
 			if (win >= 0)
 				window.draw(win == WHITEWIN ? EWwin.getSprite() : EBwin.getSprite());
+			if (isGameOver)
+				window.draw(EArrow.getSprite());
 			break;
 
 		}

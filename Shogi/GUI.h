@@ -70,6 +70,7 @@ private:
 	Entity EShowPV;
 	Entity EGiveUp;
 	Entity EUndoMove;
+	Entity EArrow;
 public :
 	int gamemodebuf[1];
 	bool isOpen;
