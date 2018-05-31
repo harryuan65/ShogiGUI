@@ -3,6 +3,7 @@
 #define LIB_H
 
 #include<SFML/Graphics.hpp>
+#include<SFML/Audio.hpp>
 #include"FileMapping.h"
 #include"Types.h"
 #include"GUI.h"

@@ -64,13 +64,22 @@ void GUI::LoadTexture()
 	EToLobby.setTexture("ButtonToLobby");
 	EArrow.setTexture("arrow");
 }
+void GUI::LoadSound()
+{
+	soundbuf_SMove;
+	if (!soundbuf_SMove.loadFromFile("sounds/move.wav")) {
+		cout << "Can't Play sound :" << "sounds/move.wav" << endl;
+		return;
+	}
+	SMove.setBuffer(soundbuf_SMove);
+}
 void GUI::InitEnvironment()
 {
-	ETitle.setPos(187.0f, 40.0f);
-	EPKAI_P.setPos(288.0f, 211.0f);
-	EPKAI_A.setPos(288.0f, 311.0f);
-	EPKPlayer.setPos(288.0f, 411.0f);
-	EAIPKAI.setPos(288.0f, 511.0f);
+	ETitle.setPos(171.0f, 40.0f);
+	EPKAI_P.setPos(288.0f, 281.0f);
+	EPKAI_A.setPos(288.0f, 381.0f);
+	EPKPlayer.setPos(288.0f, 481.0f);
+	EAIPKAI.setPos(288.0f, 581.0f);
 	EBoard.setPos(0.0f, 0.0f);
 	EArrow.setPos(450.0f, 50.0f);
 	srand(time(NULL));
@@ -201,9 +210,10 @@ GUI::GUI() {
 		std::cout << "Can't load font" << std::endl;
 
 	LoadTexture();
+	LoadSound();
 	InitEnvironment();
-	fm_gm.Open("GUI_gm");
-	fm_mg.Open("GUI_mg");
+	//fm_gm.Open("GUI_gm");
+	//fm_mg.Open("GUI_mg");
 }
 bool GUI::SetBoard(std::string init)
 {
@@ -467,6 +477,7 @@ void GUI::DoMove(int s, int d, bool p) {
 	if(!DEBUG_MODE)HightLightOff();
 	movecount++;
 	movefinished = true;
+	SMove.play();
 }
 void GUI::SetMovelist(int buf[], int getsize)
 {
@@ -756,9 +767,15 @@ string GUI::toreadablemove(Move a)
 {
 	return to_string(from_sq(a)) + " " + to_string(to_sq(a)) + " "+to_string(is_pro(a));
 }
-
+void GUI::SetFM(char *argv)
+{
+	cout << ("fm_gm_" + string(argv)) << endl;
+	fm_gm.Open("fm_gm_"+string(argv));
+	fm_mg.Open("fm_mg_"+string(argv));
+}
 void GUI::StartGame(int mode)
 {
+	win = NOONEWIN;
 	int buf[1];
 	isGameSet = true;
 	buf[0] = GAMEMODE;
@@ -1127,7 +1144,8 @@ void GUI::EnableGUI()
 		
 
 	}
-	
+	isOpen = false;
+	fm_gm.SendMsg(nullptr,0,false);
 }
 
 

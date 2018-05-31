@@ -93,10 +93,12 @@ public :
 	int roundseed;
 	FileMapping fm_gm;
 	FileMapping fm_mg;
-
-	
+	sf::SoundBuffer soundbuf_SMove;
+	sf::Sound SMove;
+	sf::Sound SEnd;
 	GUI() ;
 	void LoadTexture();
+	void LoadSound();
 	void InitEnvironment();
 	Entity *FindChess(int square);
 	void UndoMove();
@@ -113,6 +115,7 @@ public :
 	void EnableGUI();
 	void StartGame(int mode);
 	string GetModeName();
+	void SetFM(char *argv);
 	//PV
 	Entity *FindPVChess(int square);
 	Entity PVDisplayChess[20];//¤pÁûªº
